@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogos | Pétalas Negras FC</title>
+  <meta name="description" content="Calendário e resultados do Pétalas Negras FC.">
+  <link rel="icon" type="image/jpeg" href="imagens/logo.jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="marca" href="index.html">
+        <img src="imagens/logo.jpeg" alt="" width="30" height="30" onerror="this.style.display='none'">
+        Pétalas Negras FC
+      </a>
+      <button class="menu-botao" id="menuBotao" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <nav class="menu" id="menu" aria-label="Principal">
+        <ul>
+          <li><a href="index.html">Início</a></li>
+          <li><a href="jogos.html" aria-current="page">Jogos</a></li>
+          <li><a href="elenco.html">Elenco</a></li>
+          <li><a href="historia.html">História</a></li>
+          <li><a href="loja.html">Manto oficial</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="topo-pagina">
+      <div class="container">
+        <h1>Jogos</h1>
+        <p>Próximas partidas e resultados anteriores.</p>
+      </div>
+    </div>
+
+    <section class="secao">
+      <div class="container">
+        <!-- JOGOS:INICIO -->
+        <div class="grupo-jogos">
+          <h2>Próximos jogos</h2>
+          <p class="vazio">Nenhum jogo marcado por enquanto.</p>
+        </div>
+        <div class="grupo-jogos">
+          <h2>Jogos realizados</h2>
+          <ul class="lista-jogos">
+            <li class="jogo">
+              <div class="jogo-data"><strong>17</strong><span>out</span></div>
+              <div>
+                <span class="jogo-confronto">Pétalas Negras x Ki Sobra</span>
+                <span class="jogo-detalhe">sábado, 17/10/2026, 10:00</span>
+                <span class="jogo-detalhe">R. Sd. Benedito Alves dos Santos, 60 (antigo 90) - Ponte Grande, Guarulhos - SP</span>
+              </div>
+              <span class="selo">Realizado</span>
+            </li>
+            <li class="jogo">
+              <div class="jogo-data"><strong>10</strong><span>out</span></div>
+              <div>
+                <span class="jogo-confronto">Pétalas Negras x União Balancê</span>
+                <span class="jogo-detalhe">sábado, 10/10/2026, 11:00</span>
+                <span class="jogo-detalhe">Av. Domingos Fanganiello, 317</span>
+              </div>
+              <span class="selo">Realizado</span>
+            </li>
+            <li class="jogo">
+              <div class="jogo-data"><strong>12</strong><span>set</span></div>
+              <div>
+                <span class="jogo-confronto">Pétalas Negras x Flor da Palmeira FC</span>
+                <span class="jogo-detalhe">sábado, 12/09/2026, 16:00</span>
+                <span class="jogo-detalhe">Av. Domingos Fanganiello, 317</span>
+              </div>
+              <span class="selo">Realizado</span>
+            </li>
+            <li class="jogo">
+              <div class="jogo-data"><strong>08</strong><span>ago</span></div>
+              <div>
+                <span class="jogo-confronto">Pétalas Negras x Roma FC</span>
+                <span class="jogo-detalhe">sábado, 08/08/2026, 13:00</span>
+                <span class="jogo-detalhe">Av. Domingos Fanganiello, 317</span>
+              </div>
+              <span class="selo">Realizado</span>
+            </li>
+          </ul>
+        </div>
+        <!-- JOGOS:FIM -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; 2026 Pétalas Negras FC</span>
+      <a href="https://wa.me/5511977890581" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </footer>
+
+  <script src="js/menu.js"></script>
+</body>
+</html>
