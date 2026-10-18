@@ -369,16 +369,28 @@ h2 {
 .elenco-grade {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
   gap: 1rem;
+}
+
+/* No celular: sempre 2 cards por linha, sem estourar a tela */
+@media (max-width: 480px) {
+  .elenco-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
 }
 
 .atleta {
   position: relative;
-  padding: 0.6rem 0.6rem 0.85rem;
+  container-type: inline-size; /* o bloco de estatísticas se adapta à largura do card */
+  padding: 0.6rem 0.6rem 0.75rem;
   background: var(--superficie);
   border: 1px solid var(--borda);
-  border-radius: 12px;
+  border-radius: 14px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.atleta:hover {
+  border-color: rgba(181, 122, 212, 0.45);
+  transform: translateY(-2px);
 }
 
 .atleta img {
@@ -404,6 +416,49 @@ h2 {
 
 .atleta-nome { margin-top: 0.6rem; padding-inline: 0.25rem; font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
 .atleta-posicao { padding-inline: 0.25rem; font-size: 0.85rem; color: var(--suave); }
+
+/* Estatísticas do jogador: jogos, gols e assistências */
+.atleta-stats {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0.7rem 0.1rem 0;
+  padding: 0.5rem 0;
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.atleta-stats li { min-width: 0; padding-inline: 0.15rem; }
+.atleta-stats li + li { border-left: 1px solid var(--borda); }
+
+.atleta-stats strong {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--roxo-claro);
+}
+
+.atleta-stats span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  color: var(--suave);
+  white-space: nowrap;
+}
+
+/* Zerado fica discreto: só o que tem número chama atenção */
+.atleta-stats .zero strong { color: var(--suave); font-weight: 600; opacity: 0.65; }
+
+/* Card estreito (celular): números e rótulos um pouco menores para caber */
+@container (max-width: 140px) {
+  .atleta-stats strong { font-size: 1.05rem; }
+  .atleta-stats span { font-size: 0.64rem; }
+}
 
 /* ---------- História ---------- */
 .historia {
@@ -489,6 +544,22 @@ h2 {
 }
 
 .telefone:hover { color: var(--roxo-claro); }
+
+/* Coluna da direita: WhatsApp e e-mail empilhados */
+.contato-lado { display: grid; gap: 1rem; }
+
+.email {
+  display: block;
+  margin: 0.2rem 0 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  overflow-wrap: anywhere; /* o endereço quebra em vez de estourar a tela no celular */
+}
+
+.email:hover { color: var(--roxo-claro); }
+
+.btn-bloco { display: block; text-align: center; }
 
 @media (max-width: 720px) {
   .contato-grade { grid-template-columns: 1fr; }
