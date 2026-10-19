@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 """
-Atualiza o site com o elenco e as estatísticas dos jogadores.
+Atualiza o site com o elenco, a comissão técnica e as estatísticas dos jogadores.
 
-Lê o arquivo elenco.csv (o "banco de dados" dos jogadores) e reescreve a lista
-de atletas em ../elenco.html, organizada por posição, com jogos, gols e assistências.
+Lê o arquivo elenco.csv (o "banco de dados" dos jogadores e do técnico) e reescreve a
+lista de atletas em ../elenco.html, organizada por posição, com jogos, gols e assistências.
+A comissão técnica aparece num grupo próprio, no final, sem estatísticas de jogo.
 
 Este script e os arquivos .csv ficam na pasta dados/. Pode rodar de qualquer lugar:
 
   python dados/atualizar_elenco.py            atualiza a página com o que está no elenco.csv
-  python dados/atualizar_elenco.py --novo     pergunta os dados de um jogador, salva e atualiza
+  python dados/atualizar_elenco.py --novo     pergunta os dados de um jogador (ou do técnico), salva e atualiza
   python dados/atualizar_elenco.py --stats    altera jogos, gols e assistências, salva e atualiza
 
 Colunas do elenco.csv (separador ; ou ,):
-  numero        número da camisa
+  numero        número da camisa (deixe em branco para a comissão técnica)
   nome          nome que aparece no site
-  posicao       ex.: Goleiro, Zagueiro, Lateral direito, Volante, Meio-campista, Ponta, Centroavante
+  posicao       ex.: Goleiro, Zagueiro, Lateral direito, Volante, Meio-campista, Ponta, Centroavante,
+                Técnico (também vale Treinador, Auxiliar técnico, Preparador físico)
   foto          (opcional) nome do arquivo dentro de imagens/jogadores/.
-                Se ficar em branco, usa o nome do jogador: "João Vitor" -> "joao vitor.jpeg"
-  jogos         (opcional) jogos disputados; em branco vale 0
+                Se ficar em branco, usa o nome da pessoa: "João Vitor" -> "joao vitor.jpeg"
+  jogos         (opcional) jogos disputados; em branco vale 0 (não se aplica à comissão técnica)
   gols          (opcional) gols marcados; em branco vale 0
   assistencias  (opcional) assistências; em branco vale 0
+  formacao      (opcional) texto curto que aparece no card da comissão técnica,
+                ex.: Formado em Ed. Física pela Unicsul
   grupo         (opcional) só se a posição não for reconhecida: Goleiros, Zagueiros, Laterais,
-                Meio-campo ou Ataque
+                Meio-campo, Ataque ou Comissão técnica
 
 Só usa a biblioteca padrão do Python 3.8 ou mais novo.
 """
@@ -51,6 +55,9 @@ ESTATISTICAS = [
     ("assistencias", "Assistências", "Assist."),
 ]
 
+# Colunas extras que o script mantém no csv
+COLUNAS_EXTRAS = ["formacao"]
+
 # (id, título do grupo, palavras que identificam a posição)
 GRUPOS = [
     ("goleiro", "Goleiros", ["goleiro", "goleira"]),
@@ -58,7 +65,10 @@ GRUPOS = [
     ("lateral", "Laterais", ["lateral"]),
     ("meio", "Meio-campo", ["volante", "meio", "meia", "armador"]),
     ("ataque", "Ataque", ["ataque", "atacante", "centroavante", "ponta", "pivo"]),
+    ("tecnico", "Comissão técnica", ["tecnico", "treinador", "comissao", "preparador", "auxiliar"]),
 ]
+
+GRUPO_STAFF = "tecnico"
 
 
 def erro(mensagem):
@@ -81,6 +91,11 @@ def descobrir_grupo(*textos):
             if any(p in normal for p in palavras):
                 return id_grupo
     return None
+
+
+def eh_staff(linha):
+    """True se a linha crua do csv é da comissão técnica."""
+    return descobrir_grupo(linha.get("grupo", ""), linha.get("posicao", "")) == GRUPO_STAFF
 
 
 def foto_padrao(nome):
@@ -122,9 +137,9 @@ def carregar_tabela():
 
 
 def salvar_tabela(colunas, linhas, separador):
-    """Grava o elenco.csv inteiro, garantindo as colunas de estatísticas."""
+    """Grava o elenco.csv inteiro, garantindo as colunas de estatísticas e de formação."""
     colunas = list(colunas)
-    for coluna, _, _ in ESTATISTICAS:
+    for coluna in [c for c, _, _ in ESTATISTICAS] + COLUNAS_EXTRAS:
         if coluna not in colunas:
             colunas.append(coluna)
     saida = StringIO()
@@ -159,10 +174,6 @@ def ler_elenco():
         nome = linha.get("nome", "")
         if not nome:
             erro(f"elenco.csv, linha {linha['_linha']}: falta o nome.")
-        try:
-            numero = int(linha.get("numero", ""))
-        except ValueError:
-            erro(f"elenco.csv, linha {linha['_linha']}: número da camisa inválido '{linha.get('numero', '')}'.")
 
         posicao = linha.get("posicao", "")
         grupo = descobrir_grupo(linha.get("grupo", ""), posicao)
@@ -171,15 +182,26 @@ def ler_elenco():
             erro(f"elenco.csv, linha {linha['_linha']}: não reconheci a posição '{posicao}'. "
                  f"Escreva uma posição comum (ex.: Zagueiro) ou preencha a coluna grupo com: {lista}.")
 
+        texto_numero = linha.get("numero", "")
+        if grupo == GRUPO_STAFF and texto_numero == "":
+            numero = None  # comissão técnica não tem camisa
+        else:
+            try:
+                numero = int(texto_numero)
+            except ValueError:
+                erro(f"elenco.csv, linha {linha['_linha']}: número da camisa inválido '{texto_numero}'.")
+
         atleta = {
             "numero": numero,
             "nome": nome,
             "posicao": posicao or dict((g, t) for g, t, _ in GRUPOS)[grupo],
             "grupo": grupo,
             "foto": linha.get("foto") or foto_padrao(nome),
+            "formacao": linha.get("formacao", ""),
         }
-        for coluna, nome_completo, _ in ESTATISTICAS:
-            atleta[coluna] = ler_estatistica(linha, coluna, nome_completo.lower())
+        if grupo != GRUPO_STAFF:
+            for coluna, nome_completo, _ in ESTATISTICAS:
+                atleta[coluna] = ler_estatistica(linha, coluna, nome_completo.lower())
         atletas.append(atleta)
     return atletas, separador
 
@@ -187,6 +209,8 @@ def ler_elenco():
 def avisos(atletas):
     vistos = {}
     for a in atletas:
+        if a["numero"] is None:
+            continue
         if a["numero"] in vistos:
             print(f"Aviso: a camisa {a['numero']} está com {vistos[a['numero']]} e {a['nome']}.")
         vistos[a["numero"]] = a["nome"]
@@ -217,8 +241,22 @@ def html_estatisticas(a):
 
 
 def html_atleta(a):
+    foto = (f'              <img src="imagens/jogadores/{quote(a["foto"])}" alt="Foto de {esc(a["nome"])}" '
+            f'loading="lazy" onerror="this.onerror=null;this.src=\'imagens/placeholder.svg\'">')
+    if a["grupo"] == GRUPO_STAFF:
+        linhas = [
+            '            <li class="atleta">',
+            foto,
+            f'              <p class="atleta-nome">{esc(a["nome"])}</p>',
+            f'              <p class="atleta-posicao">{esc(a["posicao"])}</p>',
+        ]
+        if a["formacao"]:
+            linhas.append(f'              <p class="atleta-posicao">{esc(a["formacao"])}</p>')
+        linhas.append('            </li>')
+        return "\n".join(linhas)
+
     return f"""            <li class="atleta">
-              <img src="imagens/jogadores/{quote(a['foto'])}" alt="Foto de {esc(a['nome'])}" loading="lazy" onerror="this.onerror=null;this.src='imagens/placeholder.svg'">
+{foto}
               <span class="atleta-numero">{a['numero']}</span>
               <p class="atleta-nome">{esc(a['nome'])}</p>
               <p class="atleta-posicao">{esc(a['posicao'])}</p>
@@ -226,10 +264,14 @@ def html_atleta(a):
             </li>"""
 
 
+def chave_ordem(a):
+    return (a["numero"] is None, a["numero"] or 0, a["nome"])
+
+
 def html_elenco(atletas):
     blocos = []
     for id_grupo, titulo, _ in GRUPOS:
-        do_grupo = sorted((a for a in atletas if a["grupo"] == id_grupo), key=lambda a: a["numero"])
+        do_grupo = sorted((a for a in atletas if a["grupo"] == id_grupo), key=chave_ordem)
         if not do_grupo:
             continue
         itens = "\n".join(html_atleta(a) for a in do_grupo)
@@ -264,7 +306,8 @@ def substituir_bloco(arquivo, nome, novo_conteudo):
 def atualizar_pagina(atletas):
     avisos(atletas)
     mudou = substituir_bloco(PAGINA_ELENCO, "ELENCO", html_elenco(atletas))
-    print(f"{len(atletas)} atletas no elenco.csv.")
+    staff = sum(1 for a in atletas if a["grupo"] == GRUPO_STAFF)
+    print(f"{len(atletas) - staff} atletas e {staff} da comissão técnica no elenco.csv.")
     print(f"  {PAGINA_ELENCO.name}: {'atualizado' if mudou else 'já estava em dia'}")
 
 
@@ -281,26 +324,37 @@ def perguntar(texto, obrigatorio=True):
 def adicionar_jogador():
     colunas, linhas, separador = carregar_tabela()
 
-    print("Novo jogador (Ctrl+C para cancelar)")
-    while True:
-        numero = perguntar("Número da camisa")
-        if numero.isdigit():
-            break
-        print("  Digite só o número. Exemplo: 7")
+    print("Novo integrante (Ctrl+C para cancelar)")
     nome = perguntar("Nome")
     while True:
-        posicao = perguntar("Posição (ex.: Zagueiro, Lateral direito, Ponta)")
+        posicao = perguntar("Posição (ex.: Zagueiro, Lateral direito, Ponta; ou Técnico)")
         if descobrir_grupo(posicao):
             break
-        print("  Não reconheci essa posição. Tente: Goleiro, Zagueiro, Lateral, Volante, Meio-campista, Ponta ou Centroavante.")
+        print("  Não reconheci essa posição. Tente: Goleiro, Zagueiro, Lateral, Volante, Meio-campista, Ponta, Centroavante ou Técnico.")
+
+    staff = descobrir_grupo(posicao) == GRUPO_STAFF
+    numero = ""
+    formacao = ""
+    if staff:
+        formacao = perguntar("Formação (ex.: Formado em Ed. Física pela Unicsul)", obrigatorio=False)
+    else:
+        while True:
+            numero = perguntar("Número da camisa")
+            if numero.isdigit():
+                break
+            print("  Digite só o número. Exemplo: 7")
     foto = perguntar(f"Arquivo da foto em imagens/jogadores (Enter para '{foto_padrao(nome)}')", obrigatorio=False)
 
-    novo = {"numero": numero, "nome": nome, "posicao": posicao, "foto": foto}
-    for coluna, _, _ in ESTATISTICAS:
-        novo[coluna] = "0"
+    novo = {"numero": numero, "nome": nome, "posicao": posicao, "foto": foto, "formacao": formacao}
+    if not staff:
+        for coluna, _, _ in ESTATISTICAS:
+            novo[coluna] = "0"
     linhas.append(novo)
     salvar_tabela(colunas, linhas, separador)
-    print("Jogador salvo no elenco.csv (com jogos, gols e assistências em 0).")
+    if staff:
+        print("Salvo no elenco.csv (comissão técnica).")
+    else:
+        print("Jogador salvo no elenco.csv (com jogos, gols e assistências em 0).")
 
 
 # ---------------------------------------------------------------- estatísticas
@@ -352,10 +406,11 @@ def escolher_jogador(linhas):
 
 def alterar_estatisticas():
     colunas, linhas, separador = carregar_tabela()
-    mostrar_quadro(linhas)
+    jogadores = [l for l in linhas if not eh_staff(l)]  # comissão técnica não tem estatísticas
+    mostrar_quadro(jogadores)
     print("Alterar estatísticas (Ctrl+C para cancelar)")
     while True:
-        jogador = escolher_jogador(linhas)
+        jogador = escolher_jogador(jogadores)
         if jogador is None:
             break
         print(f"{jogador['nome']} (camisa {jogador['numero']})")
@@ -370,7 +425,7 @@ def alterar_estatisticas():
 def principal():
     parser = argparse.ArgumentParser(description="Atualiza elenco.html a partir do elenco.csv.")
     grupo = parser.add_mutually_exclusive_group()
-    grupo.add_argument("--novo", action="store_true", help="adiciona um jogador (pergunta os dados) e atualiza o site")
+    grupo.add_argument("--novo", action="store_true", help="adiciona um jogador ou técnico (pergunta os dados) e atualiza o site")
     grupo.add_argument("--stats", action="store_true", help="altera jogos, gols e assistências dos jogadores e atualiza o site")
     args = parser.parse_args()
 

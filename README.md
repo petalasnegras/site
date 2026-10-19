@@ -50,8 +50,8 @@ Ele pergunta data, horário, adversário, local e placar, salva no `jogos.csv` e
 Funciona igual aos jogos, com o arquivo `dados/elenco.csv`:
 
 ```
-numero;nome;posicao;foto;jogos;gols;assistencias
-7;Fulano;Zagueiro;;0;0;0
+numero;nome;posicao;foto;jogos;gols;assistencias;formacao
+7;Fulano;Zagueiro;;0;0;0;
 ```
 
 Depois rode:
@@ -60,12 +60,27 @@ Depois rode:
 python dados/atualizar_elenco.py
 ```
 
-ou use `python dados/atualizar_elenco.py --novo` para o script perguntar número, nome, posição e foto, salvar no `elenco.csv` e atualizar a página.
+ou use `python dados/atualizar_elenco.py --novo` para o script perguntar nome, posição, número (ou formação, no caso do técnico) e foto, salvar no `elenco.csv` e atualizar a página.
 
-- A posição define o grupo na página (Goleiros, Zagueiros, Laterais, Meio-campo, Ataque). Se for uma posição diferente das comuns, preencha a coluna extra `grupo` com um desses cinco nomes.
+- A posição define o grupo na página (Goleiros, Zagueiros, Laterais, Meio-campo, Ataque, Comissão técnica). Se for uma posição diferente das comuns, preencha a coluna extra `grupo` com um desses nomes.
 - A coluna `foto` é opcional: em branco, o script procura `imagens/jogadores/<nome em minúsculas, sem acento>.jpeg` (ex.: "João Vitor" vira `joao vitor.jpeg`). O script avisa quando uma foto não é encontrada.
 - Dentro de cada grupo, os atletas ficam em ordem de número.
 - Não apague as linhas `<!-- ELENCO:INICIO -->` e `<!-- ELENCO:FIM -->` do `elenco.html`.
+
+## Comissão técnica
+
+O técnico e outros membros da comissão ficam no mesmo `elenco.csv`, num grupo próprio ("Comissão técnica") no final da página de elenco:
+
+```
+numero;nome;posicao;foto;jogos;gols;assistencias;formacao
+;Rodrigo;Técnico;;;;;Formado em Ed. Física pela Unicsul
+```
+
+- Use a posição `Técnico` (também vale `Treinador`, `Auxiliar técnico` ou `Preparador físico`).
+- Deixe `numero`, `jogos`, `gols` e `assistencias` em branco: a comissão não tem camisa nem estatísticas.
+- A coluna `formacao` é um texto curto que aparece no card (ex.: "Formado em Ed. Física pela Unicsul").
+- A foto segue a mesma regra: em branco, procura `imagens/jogadores/rodrigo.jpeg`.
+- O `--stats` ignora a comissão técnica.
 
 ## Estatísticas dos jogadores
 
@@ -87,7 +102,7 @@ Cada jogador é salvo assim que você termina, e a página é atualizada no fina
 
 ## Imagens
 
-Coloque a sua pasta `imagens` dentro da pasta do site (ao lado dos HTMLs), com os nomes de arquivo de sempre (`logo.jpeg`, `carrossel/entrada.jpeg`, `carrossel/time.jpeg`, `carrossel/aquecimento.jpeg` (as três se alternam no fundo da página inicial), `jogadores/*.jpeg`, `uniforme/linha.jpeg` e `goleiro.jpeg`). Foto que faltar aparece como silhueta.
+Coloque a sua pasta `imagens` dentro da pasta do site (ao lado dos HTMLs), com os nomes de arquivo de sempre (`logo.jpeg`, `carrossel/entrada.jpeg`, `carrossel/time.jpeg`, `carrossel/aquecimento.jpeg` (as três se alternam no fundo da página inicial), `jogadores/*.jpeg` (inclui `rodrigo.jpeg`, do técnico), `uniforme/linha.jpeg` e `goleiro.jpeg`). Foto que faltar aparece como silhueta.
 
 ## Arquivos
 
@@ -95,6 +110,6 @@ Coloque a sua pasta `imagens` dentro da pasta do site (ao lado dos HTMLs), com o
 - `css/estilo.css`: todo o visual (cores nas variáveis do topo)
 - `js/menu.js`: só abre e fecha o menu no celular
 - `dados/jogos.csv` e `dados/atualizar_jogos.py`: histórico de jogos e o script que atualiza o site
-- `dados/elenco.csv` e `dados/atualizar_elenco.py`: o mesmo para os jogadores e suas estatísticas
+- `dados/elenco.csv` e `dados/atualizar_elenco.py`: o mesmo para os jogadores, a comissão técnica e as estatísticas
 
 Camisas, história e contato são editados direto nos HTMLs. Se o número de WhatsApp mudar, troque em `contato.html`, `loja.html` e no rodapé de cada página (procure por `5511977890581`).
