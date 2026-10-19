@@ -1,41 +1,62 @@
 #!/usr/bin/env python3
 """
-Atualiza o site com o histórico de jogos.
+Gerencia os jogos do site (calendário, placar, escalação e fotos) a partir do jogos.csv.
 
-Lê o arquivo jogos.csv (o "banco de dados" dos jogos) e reescreve:
+O jogos.csv é o "banco de dados" dos jogos. Este script lê o csv e reescreve:
   - a lista de jogos em ../jogos.html
   - o destaque do próximo (ou último) jogo em ../index.html
+  - o arquivo dados/jogos.json, usado pela página de cada jogo (jogo.html)
 
 Este script e os arquivos .csv ficam na pasta dados/. Pode rodar de qualquer lugar:
 
-  python dados/atualizar_jogos.py          atualiza as páginas com o que está no jogos.csv
-  python dados/atualizar_jogos.py --novo   pergunta os dados de um jogo, salva no jogos.csv e atualiza
+  python dados/atualizar_jogos.py                   só atualiza as páginas com o que está no jogos.csv
+  python dados/atualizar_jogos.py --listar          mostra todos os jogos (nada é alterado)
+  python dados/atualizar_jogos.py --novo            cadastra um jogo
+  python dados/atualizar_jogos.py --editar          edita qualquer dado de um jogo já cadastrado
+  python dados/atualizar_jogos.py --placar          lança o placar de um jogo rapidamente
+  python dados/atualizar_jogos.py --escalacao       define titulares e reservas de um jogo
+  python dados/atualizar_jogos.py --fotos           lê as pastas imagens/jogos/<id>/ e preenche a coluna fotos
+  python dados/atualizar_jogos.py --remover         remove um jogo
 
 Colunas do jogos.csv (separador ; ou ,):
-  data (DD/MM/AAAA), hora (HH:MM), adversario, local, placar (opcional, ex.: 2 x 1)
+  data (DD/MM/AAAA), hora (HH:MM), adversario, local, placar (ex.: 2 x 1),
+  escalacao (titulares), reservas, fotos (arquivos da pasta imagens/jogos/<id>/)
+
+Na escalacao e nas reservas, escreva os jogadores separados por vírgula, pelo nome ou pelo
+número da camisa (como estão no elenco.csv). Ex.: Henrico, 2, Heitor, Rulim
 
 Um jogo aparece como "Próximo" até o dia dele passar; depois vira "Realizado" sozinho.
+O endereço da página de cada jogo é jogo.html?id=AAAA-MM-DD-adversario.
 Só usa a biblioteca padrão do Python 3.8 ou mais novo.
 """
 
 import argparse
 import csv
 import html
+import json
 import re
 import sys
+import unicodedata
 from datetime import date, datetime
+from io import StringIO
 from pathlib import Path
+from urllib.parse import quote
 
 PASTA = Path(__file__).resolve().parent  # pasta dos scripts e dos .csv (dados/)
 # A raiz do site é a pasta de cima. Se alguém deixar o script na própria raiz, também funciona.
 RAIZ = PASTA if (PASTA / "index.html").exists() else PASTA.parent
 
 ARQUIVO_JOGOS = PASTA / "jogos.csv"
+ARQUIVO_ELENCO = PASTA / "elenco.csv"
+ARQUIVO_JSON = PASTA / "jogos.json"
 PAGINA_JOGOS = RAIZ / "jogos.html"
 PAGINA_INICIO = RAIZ / "index.html"
+PASTA_FOTOS_JOGOS = RAIZ / "imagens" / "jogos"
+EXTENSOES_IMAGEM = {".jpeg", ".jpg", ".png", ".webp"}
 
 NOSSO_TIME = "Pétalas Negras"
-COLUNAS = ["data", "hora", "adversario", "local", "placar"]
+COLUNAS = ["data", "hora", "adversario", "local", "placar", "escalacao", "reservas", "fotos"]
+COLUNAS_OBRIGATORIAS = COLUNAS[:4]
 DIAS_SEMANA = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
 
@@ -43,6 +64,74 @@ MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "
 def erro(mensagem):
     print(f"Erro: {mensagem}", file=sys.stderr)
     sys.exit(1)
+
+
+def sem_acento(texto):
+    base = unicodedata.normalize("NFD", texto)
+    return "".join(c for c in base if unicodedata.category(c) != "Mn").lower()
+
+
+def slug_jogador(nome):
+    """Mesmo identificador que o atualizar_elenco.py usa em jogador.html?id=..."""
+    return sem_acento(nome).strip().replace(" ", "-")
+
+
+def id_base(data, adversario):
+    """Identificador do jogo: usado na URL (jogo.html?id=...) e na pasta imagens/jogos/<id>/."""
+    nome = re.sub(r"[^a-z0-9]+", "-", sem_acento(adversario)).strip("-")
+    return f"{data.isoformat()}-{nome}" if nome else data.isoformat()
+
+
+def ordem_natural(texto):
+    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", texto)]
+
+
+# ---------------------------------------------------------------- elenco (para resolver a escalação)
+
+_elenco_cache = None
+
+
+def elenco():
+    """Lê nome/camisa do elenco.csv. Só leitura: quem cuida desse arquivo é o atualizar_elenco.py."""
+    global _elenco_cache
+    if _elenco_cache is not None:
+        return _elenco_cache
+    pessoas = []
+    if ARQUIVO_ELENCO.exists():
+        texto = ARQUIVO_ELENCO.read_text(encoding="utf-8-sig")
+        primeira = texto.splitlines()[0] if texto.strip() else ""
+        separador = ";" if primeira.count(";") >= primeira.count(",") else ","
+        for bruto in csv.DictReader(texto.splitlines(), delimiter=separador):
+            linha = {sem_acento((k or "").strip()): (v or "").strip() for k, v in bruto.items()}
+            if linha.get("nome"):
+                pessoas.append({"nome": linha["nome"], "numero": linha.get("numero", ""),
+                                "slug": slug_jogador(linha["nome"])})
+    _elenco_cache = pessoas
+    return pessoas
+
+
+def resolver_jogador(texto):
+    """Acha um jogador pelo número da camisa ou pelo nome. Devolve (pessoa, None) ou (None, motivo)."""
+    pessoas = elenco()
+    if not pessoas:
+        return None, "não encontrei o elenco.csv para conferir os nomes"
+    t = sem_acento(texto).strip()
+    if t.isdigit():
+        achados = [p for p in pessoas if p["numero"] == str(int(t))]
+    else:
+        achados = [p for p in pessoas if sem_acento(p["nome"]) == t]
+        if not achados:
+            achados = [p for p in pessoas if t and t in sem_acento(p["nome"])]
+    if not achados:
+        return None, f"ninguém no elenco com nome ou camisa '{texto}'"
+    if len(achados) > 1:
+        nomes = ", ".join(p["nome"] for p in achados)
+        return None, f"'{texto}' bate com mais de um jogador ({nomes}); escreva o nome completo ou a camisa"
+    return achados[0], None
+
+
+def separar_lista(texto):
+    return [p.strip() for p in re.split(r"[,|]", texto) if p.strip()]
 
 
 # ---------------------------------------------------------------- leitura
@@ -61,7 +150,13 @@ def converter_data(texto, numero_linha):
     erro(f"jogos.csv, linha {numero_linha}: data inválida '{texto}'. Use DD/MM/AAAA.")
 
 
-def ler_jogos():
+def interpretar_placar(texto):
+    """'2 x 1' -> (2, 1). Devolve None se não for um placar no formato esperado."""
+    m = re.fullmatch(r"\s*(\d+)\s*[xX×-]\s*(\d+)\s*", texto or "")
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def carregar_tabela():
     if not ARQUIVO_JOGOS.exists():
         erro(f"não encontrei {ARQUIVO_JOGOS.name} em {PASTA}.")
 
@@ -71,26 +166,63 @@ def ler_jogos():
 
     if not leitor.fieldnames:
         erro("o jogos.csv está vazio.")
-    cabecalho = [c.strip().lower() for c in leitor.fieldnames]
-    faltando = [c for c in COLUNAS[:4] if c not in cabecalho]
+    colunas = [c.strip().lower() for c in leitor.fieldnames]
+    faltando = [c for c in COLUNAS_OBRIGATORIAS if c not in colunas]
     if faltando:
         erro(f"faltam colunas no jogos.csv: {', '.join(faltando)}.")
 
-    jogos = []
+    linhas = []
     for numero, bruto in enumerate(leitor, start=2):
         linha = {(k or "").strip().lower(): (v or "").strip() for k, v in bruto.items()}
         if not any(linha.values()):
             continue  # linha em branco
+        linha["_linha"] = numero
+        linhas.append(linha)
+    return colunas, linhas, separador
+
+
+def salvar_tabela(colunas, linhas, separador):
+    colunas = list(colunas)
+    for coluna in COLUNAS:
+        if coluna not in colunas:
+            colunas.append(coluna)
+    saida = StringIO()
+    escritor = csv.DictWriter(saida, fieldnames=colunas, delimiter=separador,
+                              lineterminator="\n", extrasaction="ignore", restval="")
+    escritor.writeheader()
+    escritor.writerows(linhas)
+    ARQUIVO_JOGOS.write_text(saida.getvalue(), encoding="utf-8")
+
+
+def montar_jogos(linhas):
+    jogos = []
+    usados = {}
+    for linha in linhas:
         if not linha.get("adversario"):
-            erro(f"jogos.csv, linha {numero}: falta o adversário.")
+            erro(f"jogos.csv, linha {linha['_linha']}: falta o adversário.")
+        data = converter_data(linha.get("data", ""), linha["_linha"])
+
+        base = id_base(data, linha["adversario"])
+        usados[base] = usados.get(base, 0) + 1
+        id_jogo = base if usados[base] == 1 else f"{base}-{usados[base]}"
+
         jogos.append({
-            "data": converter_data(linha.get("data", ""), numero),
+            "id": id_jogo,
+            "data": data,
             "hora": linha.get("hora", ""),
             "adversario": linha["adversario"],
             "local": linha.get("local", ""),
             "placar": linha.get("placar", ""),
+            "escalacao": separar_lista(linha.get("escalacao", "")),
+            "reservas": separar_lista(linha.get("reservas", "")),
+            "fotos": [f.strip() for f in linha.get("fotos", "").split(",") if f.strip()],
         })
-    return jogos, separador
+    return jogos
+
+
+def ler_jogos():
+    _, linhas, separador = carregar_tabela()
+    return montar_jogos(linhas), separador
 
 
 # ---------------------------------------------------------------- HTML
@@ -110,6 +242,10 @@ def confronto(jogo):
     return f"{NOSSO_TIME} {meio} {esc(jogo['adversario'])}"
 
 
+def url_jogo(jogo):
+    return f"jogo.html?id={quote(jogo['id'])}"
+
+
 def html_linha_jogo(jogo, proximo):
     d = jogo["data"]
     selo = '<span class="selo selo-proximo">Próximo</span>' if proximo else '<span class="selo">Realizado</span>'
@@ -117,7 +253,7 @@ def html_linha_jogo(jogo, proximo):
     return f"""          <li class="jogo">
             <div class="jogo-data"><strong>{d.day:02d}</strong><span>{MESES[d.month - 1]}</span></div>
             <div>
-              <span class="jogo-confronto">{confronto(jogo)}</span>
+              <a class="jogo-confronto" href="{url_jogo(jogo)}">{confronto(jogo)}</a>
               <span class="jogo-detalhe">{esc(descricao_data(jogo))}</span>{local}
             </div>
             {selo}
@@ -157,7 +293,7 @@ def html_destaque(jogos, hoje):
     else:
         return ""
     return (
-        f'<a class="destaque-jogo" href="jogos.html">\n'
+        f'<a class="destaque-jogo" href="{url_jogo(jogo)}">\n'
         f'          <span class="rotulo">{rotulo}</span>\n'
         f'          <strong>{confronto(jogo)}</strong>\n'
         f'          <span class="detalhe">{esc(descricao_data(jogo))}</span>\n'
@@ -165,7 +301,62 @@ def html_destaque(jogos, hoje):
     )
 
 
-# ---------------------------------------------------------------- escrita
+# ---------------------------------------------------------------- JSON (página de cada jogo)
+
+def resolver_lista(nomes):
+    """Transforma nomes/camisas em identificadores de perfil. Devolve (slugs, problemas)."""
+    slugs, problemas = [], []
+    for texto in nomes:
+        pessoa, motivo = resolver_jogador(texto)
+        if pessoa is None:
+            problemas.append(motivo)
+        elif pessoa["slug"] not in slugs:
+            slugs.append(pessoa["slug"])
+    return slugs, problemas
+
+
+def json_jogos(jogos):
+    dados = {}
+    for jogo in sorted(jogos, key=lambda j: (j["data"], j["hora"]), reverse=True):
+        placar = interpretar_placar(jogo["placar"])
+        if placar:
+            pro, contra = placar
+            resultado = "vitoria" if pro > contra else "derrota" if pro < contra else "empate"
+            placar_texto = f"{pro} x {contra}"
+        else:
+            pro = contra = None
+            resultado = ""
+            placar_texto = jogo["placar"]
+        titulares, _ = resolver_lista(jogo["escalacao"])
+        reservas, _ = resolver_lista(jogo["reservas"])
+        dados[jogo["id"]] = {
+            "id": jogo["id"],
+            "data": jogo["data"].isoformat(),
+            "data_br": jogo["data"].strftime("%d/%m/%Y"),
+            "dia_semana": DIAS_SEMANA[jogo["data"].weekday()],
+            "hora": jogo["hora"],
+            "adversario": jogo["adversario"],
+            "local": jogo["local"],
+            "placar": placar_texto,
+            "gols_pro": pro,
+            "gols_contra": contra,
+            "resultado": resultado,
+            "escalacao": titulares,
+            "reservas": [s for s in reservas if s not in titulares],
+            "fotos": jogo["fotos"],
+        }
+    return json.dumps(dados, ensure_ascii=False, indent=2)
+
+
+def gerar_json_jogos(jogos):
+    novo = json_jogos(jogos)
+    antigo = ARQUIVO_JSON.read_text(encoding="utf-8") if ARQUIVO_JSON.exists() else None
+    if novo != antigo:
+        ARQUIVO_JSON.write_text(novo, encoding="utf-8")
+    print(f"  {ARQUIVO_JSON.name}: {'atualizado' if novo != antigo else 'já estava em dia'}")
+
+
+# ---------------------------------------------------------------- escrita das páginas
 
 def substituir_bloco(arquivo, nome, novo_conteudo):
     """Troca o que está entre <!-- NOME:INICIO --> e <!-- NOME:FIM -->."""
@@ -182,64 +373,385 @@ def substituir_bloco(arquivo, nome, novo_conteudo):
     return False
 
 
+def avisos(jogos):
+    for jogo in jogos:
+        rotulo = f"{jogo['data'].strftime('%d/%m/%Y')} x {jogo['adversario']}"
+        if jogo["placar"] and not interpretar_placar(jogo["placar"]):
+            print(f"Aviso: placar '{jogo['placar']}' ({rotulo}) não está no formato '2 x 1'.")
+        for campo, titulo in (("escalacao", "escalação"), ("reservas", "reservas")):
+            _, problemas = resolver_lista(jogo[campo])
+            for p in problemas:
+                print(f"Aviso: {titulo} de {rotulo}: {p}.")
+        titulares, _ = resolver_lista(jogo["escalacao"])
+        reservas, _ = resolver_lista(jogo["reservas"])
+        repetidos = [s for s in reservas if s in titulares]
+        if repetidos:
+            print(f"Aviso: {rotulo}: {', '.join(repetidos)} está nos titulares e nas reservas (ficará só nos titulares).")
+        if len(titulares) > 11:
+            print(f"Aviso: {rotulo}: {len(titulares)} titulares na escalação.")
+        for foto in jogo["fotos"]:
+            if not (PASTA_FOTOS_JOGOS / jogo["id"] / foto).exists():
+                print(f"Aviso: foto não encontrada em imagens/jogos/{jogo['id']}/{foto} ({rotulo}).")
+
+
 def atualizar_paginas(jogos, hoje=None):
     hoje = hoje or date.today()
+    avisos(jogos)
     mudou_jogos = substituir_bloco(PAGINA_JOGOS, "JOGOS", html_pagina_jogos(jogos, hoje))
     mudou_inicio = substituir_bloco(PAGINA_INICIO, "PROXIMO", html_destaque(jogos, hoje))
     proximos, realizados = separar(jogos, hoje)
     print(f"{len(jogos)} jogos no jogos.csv: {len(proximos)} próximos, {len(realizados)} realizados.")
     print(f"  {PAGINA_JOGOS.name}: {'atualizado' if mudou_jogos else 'já estava em dia'}")
     print(f"  {PAGINA_INICIO.name}: {'atualizado' if mudou_inicio else 'já estava em dia'}")
+    gerar_json_jogos(jogos)
+    if not (RAIZ / "jogo.html").exists():
+        print("Aviso: não encontrei jogo.html na raiz do site (é a página de cada jogo).")
 
 
-# ---------------------------------------------------------------- novo jogo
+# ---------------------------------------------------------------- perguntas interativas
 
-def perguntar(texto, obrigatorio=True):
-    while True:
-        resposta = input(f"{texto}: ").strip()
-        if resposta or not obrigatorio:
-            return resposta
-        print("  Esse campo é obrigatório.")
-
-
-def adicionar_jogo(separador):
-    print("Novo jogo (Ctrl+C para cancelar)")
-    while True:
-        data = perguntar("Data (DD/MM/AAAA)")
+def v_data(texto, atual):
+    for formato in ("%d/%m/%Y", "%Y-%m-%d"):
         try:
-            datetime.strptime(data, "%d/%m/%Y")
-            break
+            return datetime.strptime(texto, formato).strftime("%d/%m/%Y")
         except ValueError:
-            print("  Data inválida. Exemplo: 25/10/2026")
-    hora = perguntar("Horário (ex.: 10:00)")
-    adversario = perguntar("Adversário")
-    local = perguntar("Local", obrigatorio=False)
-    placar = perguntar("Placar, se já aconteceu (ex.: 2 x 1)", obrigatorio=False)
+            pass
+    raise ValueError("Data inválida. Exemplo: 25/10/2026")
 
-    conteudo = ARQUIVO_JOGOS.read_text(encoding="utf-8-sig")
-    if conteudo and not conteudo.endswith("\n"):
-        conteudo += "\n"
-    from io import StringIO
-    saida = StringIO()
-    csv.writer(saida, delimiter=separador, lineterminator="\n").writerow([data, hora, adversario, local, placar])
-    ARQUIVO_JOGOS.write_text(conteudo + saida.getvalue(), encoding="utf-8")
-    print("Jogo salvo no jogos.csv.")
+
+def v_hora(texto, atual):
+    m = re.fullmatch(r"(\d{1,2})\s*(?:[:hH]\s*(\d{2})?)?", texto.strip())
+    if m:
+        h, mi = int(m.group(1)), int(m.group(2) or 0)
+        if h <= 23 and mi <= 59:
+            return f"{h:02d}:{mi:02d}"
+    raise ValueError("Horário inválido. Exemplo: 10:00")
+
+
+def v_placar(texto, atual):
+    placar = interpretar_placar(texto)
+    if not placar:
+        raise ValueError("Use o formato nossos x deles, ex.: 2 x 1 (nosso gol primeiro).")
+    return f"{placar[0]} x {placar[1]}"
+
+
+def v_lista_jogadores(texto, atual):
+    nomes, vistos = [], set()
+    for item in separar_lista(texto):
+        pessoa, motivo = resolver_jogador(item)
+        if pessoa is None:
+            raise ValueError(motivo[0].upper() + motivo[1:] + ".")
+        if pessoa["slug"] not in vistos:
+            vistos.add(pessoa["slug"])
+            nomes.append(pessoa["nome"])
+    return ", ".join(nomes)
+
+
+def perguntar(rotulo, atual=None, validar=None, obrigatorio=False):
+    """
+    atual=None  -> cadastro novo (Enter deixa vazio, se não for obrigatório).
+    atual="..." -> edição (Enter mantém; "-" apaga).
+    """
+    editando = atual is not None
+    if editando:
+        prompt = f"  {rotulo} [{atual if atual != '' else 'vazio'}] (Enter mantém, - apaga): "
+    else:
+        prompt = f"  {rotulo}{'' if obrigatorio else ' (opcional)'}: "
+
+    while True:
+        resposta = input(prompt).strip()
+        if resposta == "":
+            if editando:
+                return atual
+            if obrigatorio:
+                print("    Esse campo é obrigatório.")
+                continue
+            return ""
+        if resposta == "-" and editando:
+            if obrigatorio:
+                print("    Esse campo é obrigatório, não dá para apagar.")
+                continue
+            return ""
+        if validar:
+            try:
+                return validar(resposta, atual)
+            except ValueError as e:
+                print(f"    {e}")
+                continue
+        return resposta
+
+
+def fotos_da_pasta(id_jogo):
+    pasta = PASTA_FOTOS_JOGOS / id_jogo
+    if not pasta.is_dir():
+        return []
+    arquivos = [p.name for p in pasta.iterdir() if p.suffix.lower() in EXTENSOES_IMAGEM]
+    return sorted(arquivos, key=ordem_natural)
+
+
+def id_da_linha(linha):
+    try:
+        return id_base(converter_data(linha.get("data", ""), linha.get("_linha", 0)), linha.get("adversario", ""))
+    except SystemExit:
+        return ""
+
+
+def mostrar_elenco():
+    pessoas = [p for p in elenco() if p["numero"]]
+    if pessoas:
+        print("  Elenco: " + " | ".join(f"{p['numero']} {p['nome']}" for p in pessoas))
+
+
+def perguntar_escalacao(linha, novo):
+    mostrar_elenco()
+    print("  (escreva nomes ou camisas separados por vírgula)")
+    linha["escalacao"] = perguntar("Titulares", None if novo else linha.get("escalacao", ""), v_lista_jogadores)
+    linha["reservas"] = perguntar("Reservas", None if novo else linha.get("reservas", ""), v_lista_jogadores)
+    titulares = {sem_acento(n) for n in separar_lista(linha["escalacao"])}
+    repetidos = [n for n in separar_lista(linha["reservas"]) if sem_acento(n) in titulares]
+    if repetidos:
+        print(f"  Aviso: {', '.join(repetidos)} está nos titulares e nas reservas.")
+    if len(separar_lista(linha["escalacao"])) > 11:
+        print("  Aviso: mais de 11 titulares.")
+
+
+def v_fotos_factory(linha):
+    def validar(texto, atual):
+        if sem_acento(texto) == "auto":
+            id_jogo = id_da_linha(linha)
+            achadas = fotos_da_pasta(id_jogo)
+            if not achadas:
+                raise ValueError(f"Não achei fotos em imagens/jogos/{id_jogo}/.")
+            print(f"    Fotos encontradas: {', '.join(achadas)}")
+            return ", ".join(achadas)
+        return ", ".join(p.strip() for p in texto.replace("|", ",").split(",") if p.strip())
+    return validar
+
+
+def preencher(linha, novo):
+    """Pergunta os campos de um jogo e grava as respostas em `linha` (ainda na memória)."""
+    def atual(campo):
+        return None if novo else linha.get(campo, "")
+
+    linha["data"] = perguntar("Data (DD/MM/AAAA)", atual("data"), v_data, obrigatorio=True)
+    linha["hora"] = perguntar("Horário (ex.: 10:00)", atual("hora"), v_hora, obrigatorio=novo)
+    linha["adversario"] = perguntar("Adversário", atual("adversario"), obrigatorio=True)
+    linha["local"] = perguntar("Local", atual("local"))
+    linha["placar"] = perguntar("Placar, se já aconteceu (ex.: 2 x 1)", atual("placar"), v_placar)
+    perguntar_escalacao(linha, novo)
+    id_jogo = id_da_linha(linha)
+    linha["fotos"] = perguntar(
+        f"Fotos do jogo, na pasta imagens/jogos/{id_jogo}/ (ex.: 1.jpeg, 2.jpeg ou 'auto')",
+        atual("fotos"), v_fotos_factory(linha))
+    return linha
+
+
+def ordenar_linhas(linhas):
+    def chave(l):
+        try:
+            return (converter_data(l.get("data", ""), 0), l.get("hora", ""))
+        except SystemExit:
+            return (date.min, "")
+    return sorted(linhas, key=chave, reverse=True)
+
+
+def mostrar_lista(ordenadas):
+    print()
+    for i, l in enumerate(ordenadas, start=1):
+        placar = l.get("placar") or "-"
+        info = []
+        if l.get("escalacao"):
+            info.append(f"{len(separar_lista(l['escalacao']))} titulares")
+        if l.get("fotos"):
+            info.append(f"{len([f for f in l['fotos'].split(',') if f.strip()])} fotos")
+        extra = f"  [{', '.join(info)}]" if info else ""
+        print(f"  {i:>2}) {l.get('data', ''):<11}{l.get('hora', ''):<6} {l.get('adversario', ''):<24} {placar:<7}{extra}")
+    print()
+
+
+def escolher_jogo(linhas, termo):
+    ordenadas = ordenar_linhas(linhas)
+    termo = termo.strip()
+    if not termo:
+        return None
+    if termo.isdigit():
+        n = int(termo)
+        if 1 <= n <= len(ordenadas):
+            return ordenadas[n - 1]
+        print("  Número fora da lista.")
+        return None
+    t = sem_acento(termo)
+    achados = [l for l in ordenadas
+               if t in sem_acento(l.get("adversario", "")) or t in l.get("data", "") or t in id_da_linha(l)]
+    if not achados:
+        print("  Nenhum jogo encontrado.")
+        return None
+    if len(achados) == 1:
+        return achados[0]
+    print("  Mais de um jogo encontrado:")
+    mostrar_lista(achados)
+    escolha = input("  Qual deles? (número da lista acima, Enter cancela): ").strip()
+    if escolha.isdigit() and 1 <= int(escolha) <= len(achados):
+        return achados[int(escolha) - 1]
+    return None
+
+
+def titulo_jogo(linha):
+    return f"{linha.get('data', '')} - {NOSSO_TIME} x {linha.get('adversario', '')}"
+
+
+# ---------------------------------------------------------------- comandos
+
+def cmd_listar():
+    _, linhas, _ = carregar_tabela()
+    montar_jogos(linhas)  # valida
+    mostrar_lista(ordenar_linhas(linhas))
+
+
+def cmd_novo():
+    colunas, linhas, separador = carregar_tabela()
+    print("Novo jogo (Ctrl+C para cancelar)")
+    linha = {c: "" for c in colunas}
+    linha["_linha"] = len(linhas) + 2
+    preencher(linha, novo=True)
+    linhas.append(linha)
+    salvar_tabela(colunas, linhas, separador)
+    print(f"\nJogo salvo no jogos.csv: {titulo_jogo(linha)}")
+    id_jogo = id_da_linha(linha)
+    if not linha.get("fotos"):
+        print(f"Para o carrossel, coloque as fotos em imagens/jogos/{id_jogo}/ e depois rode --fotos.")
+
+
+def cmd_editar(busca=""):
+    colunas, linhas, separador = carregar_tabela()
+    print("Editar jogos (Ctrl+C cancela o jogo atual; o que já foi salvo fica)")
+    termo = busca
+    while True:
+        if not termo:
+            mostrar_lista(ordenar_linhas(linhas))
+            termo = input("Número da lista, adversário ou data (Enter para encerrar): ").strip()
+            if not termo:
+                break
+        linha = escolher_jogo(linhas, termo)
+        termo = ""
+        if not linha:
+            continue
+        print(f"\n{titulo_jogo(linha)}")
+        preencher(linha, novo=False)
+        salvar_tabela(colunas, linhas, separador)
+        print("  Jogo salvo.")
+
+
+def cmd_placar():
+    colunas, linhas, separador = carregar_tabela()
+    print("Lançar placar (nosso gol primeiro, ex.: 2 x 1). Enter no jogo encerra.")
+    while True:
+        mostrar_lista(ordenar_linhas(linhas))
+        termo = input("Número da lista, adversário ou data: ").strip()
+        if not termo:
+            break
+        linha = escolher_jogo(linhas, termo)
+        if not linha:
+            continue
+        print(f"\n{titulo_jogo(linha)}")
+        linha["placar"] = perguntar("Placar", linha.get("placar", ""), v_placar)
+        salvar_tabela(colunas, linhas, separador)
+        print("  Placar salvo.")
+
+
+def cmd_escalacao(busca=""):
+    colunas, linhas, separador = carregar_tabela()
+    termo = busca
+    while True:
+        if not termo:
+            mostrar_lista(ordenar_linhas(linhas))
+            termo = input("Número da lista, adversário ou data (Enter para encerrar): ").strip()
+            if not termo:
+                break
+        linha = escolher_jogo(linhas, termo)
+        termo = ""
+        if not linha:
+            continue
+        print(f"\n{titulo_jogo(linha)}")
+        perguntar_escalacao(linha, novo=False)
+        salvar_tabela(colunas, linhas, separador)
+        print("  Escalação salva.")
+
+
+def cmd_remover(busca=""):
+    colunas, linhas, separador = carregar_tabela()
+    termo = busca
+    if not termo:
+        mostrar_lista(ordenar_linhas(linhas))
+        termo = input("Número da lista, adversário ou data de quem remover (Enter cancela): ").strip()
+    linha = escolher_jogo(linhas, termo) if termo else None
+    if not linha:
+        print("Nada foi alterado.")
+        return
+    print(f"\n{titulo_jogo(linha)}")
+    if input("  Remover este jogo? Digite 's' para confirmar: ").strip().lower() != "s":
+        print("Nada foi alterado.")
+        return
+    linhas.remove(linha)
+    salvar_tabela(colunas, linhas, separador)
+    print("Jogo removido do jogos.csv. (As fotos em imagens/ não são apagadas.)")
+
+
+def cmd_fotos():
+    colunas, linhas, separador = carregar_tabela()
+    if not PASTA_FOTOS_JOGOS.exists():
+        print("Pasta imagens/jogos/ não encontrada, nada a fazer.")
+        return
+    mudou = False
+    for linha in linhas:
+        achadas = fotos_da_pasta(id_da_linha(linha))
+        if not achadas:
+            continue
+        texto = ", ".join(achadas)
+        if linha.get("fotos", "") != texto:
+            linha["fotos"] = texto
+            mudou = True
+            print(f"  {titulo_jogo(linha)}: {len(achadas)} fotos ({texto})")
+    if mudou:
+        salvar_tabela(colunas, linhas, separador)
+    else:
+        print("A coluna fotos já estava de acordo com as pastas de imagens/jogos/.")
 
 
 def principal():
-    parser = argparse.ArgumentParser(description="Atualiza jogos.html e index.html a partir do jogos.csv.")
-    parser.add_argument("--novo", action="store_true", help="adiciona um jogo (pergunta os dados) e atualiza o site")
+    parser = argparse.ArgumentParser(
+        description="Gerencia os jogos: atualiza jogos.html, index.html e jogos.json a partir do jogos.csv.")
+    grupo = parser.add_mutually_exclusive_group()
+    grupo.add_argument("--novo", action="store_true", help="cadastra um jogo")
+    grupo.add_argument("--editar", nargs="?", const="", default=None, metavar="JOGO",
+                       help="edita qualquer dado de um jogo (adversário, data ou número da lista opcional)")
+    grupo.add_argument("--placar", action="store_true", help="lança o placar de um jogo")
+    grupo.add_argument("--escalacao", nargs="?", const="", default=None, metavar="JOGO",
+                       help="define titulares e reservas de um jogo")
+    grupo.add_argument("--fotos", action="store_true", help="preenche a coluna fotos lendo as pastas imagens/jogos/<id>/")
+    grupo.add_argument("--remover", nargs="?", const="", default=None, metavar="JOGO", help="remove um jogo")
+    grupo.add_argument("--listar", action="store_true", help="mostra todos os jogos, sem alterar nada")
     args = parser.parse_args()
 
-    if args.novo:
-        if not ARQUIVO_JOGOS.exists():
-            erro(f"não encontrei {ARQUIVO_JOGOS.name} em {PASTA}.")
-        separador = detectar_separador(ARQUIVO_JOGOS.read_text(encoding="utf-8-sig"))
-        try:
-            adicionar_jogo(separador)
-        except (KeyboardInterrupt, EOFError):
-            print("\nCancelado. Nada foi alterado.")
-            return
+    if args.listar:
+        cmd_listar()
+        return
+
+    try:
+        if args.novo:
+            cmd_novo()
+        elif args.editar is not None:
+            cmd_editar(args.editar)
+        elif args.placar:
+            cmd_placar()
+        elif args.escalacao is not None:
+            cmd_escalacao(args.escalacao)
+        elif args.fotos:
+            cmd_fotos()
+        elif args.remover is not None:
+            cmd_remover(args.remover)
+    except (KeyboardInterrupt, EOFError):
+        print("\nInterrompido. O que já tinha sido salvo foi mantido.")
 
     jogos, _ = ler_jogos()
     atualizar_paginas(jogos)

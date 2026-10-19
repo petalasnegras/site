@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo | Pétalas Negras FC</title>
+  <meta name="description" content="Detalhes, escalação e fotos de um jogo do Pétalas Negras FC.">
+  <link rel="icon" type="image/jpeg" href="imagens/logo.jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css">
+  <style>
+    [hidden] { display: none !important; }
+
+    /* Placar e informações do jogo */
+    .jg-topo {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .jg-resultado {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--borda);
+      color: var(--suave);
+      white-space: nowrap;
+    }
+    .jg-resultado.vitoria { color: #5fd38d; border-color: rgba(95, 211, 141, 0.5); }
+    .jg-resultado.derrota { color: #ee7d7d; border-color: rgba(238, 125, 125, 0.5); }
+
+    .jg-placar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.25rem 0;
+      text-align: center;
+    }
+    .jg-time {
+      font-size: clamp(1.1rem, 3.2vw, 1.5rem);
+      font-weight: 700;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .jg-valor {
+      padding: 0.3rem 1.1rem;
+      background: var(--superficie-2);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      font-size: clamp(1.8rem, 6vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+      color: var(--roxo-claro);
+      white-space: nowrap;
+    }
+
+    .jg-infos {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+      padding: 0.85rem;
+      background: var(--superficie-2);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+    }
+    .jg-info { min-width: 0; }
+    .jg-info.largo { grid-column: 1 / -1; }
+    .jg-rotulo {
+      display: block;
+      margin-bottom: 0.15rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--suave);
+    }
+    .jg-valor-info { font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere; }
+    .jg-mapa {
+      display: inline-block;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--roxo-claro);
+      text-decoration: none;
+    }
+    .jg-mapa:hover { text-decoration: underline; }
+
+    .jg-bloco { margin-top: 2.5rem; }
+    .jg-bloco > h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+    .jg-bloco .grupo-elenco + .grupo-elenco { margin-top: 1.75rem; }
+
+    @media (max-width: 560px) {
+      .jg-placar { grid-template-columns: 1fr; gap: 0.5rem; }
+    }
+
+    /* Carrossel de fotos do jogo */
+    .carrossel-wrapper {
+      position: relative;
+      width: 100%;
+      background: var(--fundo);
+      border-radius: 14px;
+      border: 1px solid var(--borda);
+      overflow: hidden;
+    }
+    .carrossel-slides {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .carrossel-slides::-webkit-scrollbar { display: none; }
+    .carrossel-slide {
+      position: relative;
+      min-width: 100%;
+      height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: radial-gradient(circle, rgba(181, 122, 212, 0.12) 0%, rgba(14, 14, 18, 0.98) 75%);
+    }
+    .carrossel-slide::before {
+      content: '';
+      position: absolute;
+      inset: -15px;
+      background-image: var(--bg-foto);
+      background-size: cover;
+      background-position: center;
+      filter: blur(28px) brightness(0.25) opacity(0.5);
+      transform: scale(1.15);
+      z-index: 1;
+    }
+    .carrossel-slide img {
+      position: relative;
+      z-index: 2;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+    }
+    .carrossel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      background: rgba(22, 22, 28, 0.85);
+      border: 1px solid var(--borda);
+      border-radius: 50%;
+      color: var(--texto);
+      cursor: pointer;
+      z-index: 3;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+    .carrossel-btn:hover {
+      background: var(--roxo);
+      border-color: var(--roxo-claro);
+      transform: translateY(-50%) scale(1.1);
+    }
+    .carrossel-btn.prev { left: 10px; }
+    .carrossel-btn.next { right: 10px; }
+    .carrossel-indicadores {
+      position: absolute;
+      bottom: 0.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.4rem;
+      z-index: 3;
+    }
+    .indicador {
+      width: 8px;
+      height: 8px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+    .indicador.ativo {
+      background: var(--roxo-claro);
+      transform: scale(1.3);
+      box-shadow: 0 0 8px var(--roxo-claro);
+    }
+
+    @media (max-width: 480px) {
+      .carrossel-slide { height: 340px; }
+      .carrossel-btn { width: 32px; height: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="marca" href="index.html">
+        <img src="imagens/logo.jpeg" alt="" width="30" height="30" onerror="this.style.display='none'">
+        Pétalas Negras FC
+      </a>
+      <button class="menu-botao" id="menuBotao" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <nav class="menu" id="menu" aria-label="Principal">
+        <ul>
+          <li><a href="index.html">Início</a></li>
+          <li><a href="jogos.html" aria-current="page">Jogos</a></li>
+          <li><a href="elenco.html">Elenco</a></li>
+          <li><a href="historia.html">História</a></li>
+          <li><a href="loja.html">Manto oficial</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="secao">
+      <div class="container">
+        <a class="perfil-voltar" href="jogos.html">&larr; Voltar aos jogos</a>
+
+        <div id="jogo-carregando" class="caixa">
+          <p>Carregando jogo...</p>
+        </div>
+
+        <div id="jogo-nao-encontrado" class="caixa" hidden>
+          <h2>Jogo não encontrado</h2>
+          <p>Não encontramos os dados deste jogo. Confira o endereço ou volte à lista de jogos.</p>
+        </div>
+
+        <div id="jogo-conteudo" hidden>
+          <!-- Informações do jogo -->
+          <div class="caixa">
+            <div class="jg-topo">
+              <span id="jogo-selo" class="selo"></span>
+              <span id="jogo-resultado" class="jg-resultado" hidden></span>
+            </div>
+
+            <h1 class="jg-placar" aria-live="polite">
+              <span class="jg-time">Pétalas Negras</span>
+              <span id="jogo-placar" class="jg-valor">x</span>
+              <span id="jogo-adversario" class="jg-time"></span>
+            </h1>
+
+            <div class="jg-infos">
+              <div class="jg-info">
+                <span class="jg-rotulo">Data</span>
+                <span id="jogo-data" class="jg-valor-info"></span>
+              </div>
+              <div id="jogo-item-hora" class="jg-info" hidden>
+                <span class="jg-rotulo">Horário</span>
+                <span id="jogo-hora" class="jg-valor-info"></span>
+              </div>
+              <div id="jogo-item-local" class="jg-info largo" hidden>
+                <span class="jg-rotulo">Local</span>
+                <span id="jogo-local" class="jg-valor-info"></span><br>
+                <a id="jogo-mapa" class="jg-mapa" href="#" target="_blank" rel="noopener">Ver no mapa &rarr;</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Escalação -->
+          <section id="secao-escalacao" class="jg-bloco" hidden>
+            <h2>Escalação</h2>
+            <div id="escalacao-conteudo"></div>
+          </section>
+
+          <!-- Fotos do jogo -->
+          <section id="secao-carrossel" class="jg-bloco" hidden>
+            <h2>Fotos do jogo 📸</h2>
+            <div class="carrossel-wrapper">
+              <button id="carrossel-prev" class="carrossel-btn prev" type="button" aria-label="Foto anterior">&lt;</button>
+              <div id="carrossel-slides" class="carrossel-slides"></div>
+              <button id="carrossel-next" class="carrossel-btn next" type="button" aria-label="Próxima foto">&gt;</button>
+              <div id="carrossel-indicadores" class="carrossel-indicadores"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; 2026 Pétalas Negras FC</span>
+      <a href="https://wa.me/5511977890581" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </footer>
+
+  <script src="js/menu.js"></script>
+  <script>
+    (function () {
+      var NOSSO_TIME = 'Pétalas Negras';
+      var $ = function (id) { return document.getElementById(id); };
+
+      var id = new URLSearchParams(window.location.search).get('id');
+
+      function naoEncontrado() {
+        $('jogo-carregando').hidden = true;
+        $('jogo-nao-encontrado').hidden = false;
+      }
+
+      if (!id) { naoEncontrado(); return; }
+
+      function hojeISO() {
+        var d = new Date();
+        var p = function (n) { return String(n).padStart(2, '0'); };
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+      }
+
+      Promise.all([
+        fetch('dados/jogos.json').then(function (r) {
+          if (!r.ok) throw new Error('Falha ao ler jogos.json');
+          return r.json();
+        }),
+        fetch('dados/jogadores.json').then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })
+      ]).then(function (res) {
+        var jogo = res[0][id];
+        if (!jogo) { naoEncontrado(); return; }
+        mostrarJogo(jogo, res[1]);
+      }).catch(function (err) {
+        console.error('Erro:', err);
+        naoEncontrado();
+      });
+
+      function mostrarJogo(jogo, jogadores) {
+        document.title = NOSSO_TIME + ' x ' + jogo.adversario + ' | Pétalas Negras FC';
+
+        // Status, placar e resultado
+        var proximo = jogo.data >= hojeISO();
+        var selo = $('jogo-selo');
+        selo.textContent = proximo ? 'Próximo' : 'Realizado';
+        if (proximo) selo.classList.add('selo-proximo');
+
+        $('jogo-adversario').textContent = jogo.adversario;
+        $('jogo-placar').textContent = jogo.placar ? jogo.placar : 'x';
+
+        var rotulos = { vitoria: 'Vitória', empate: 'Empate', derrota: 'Derrota' };
+        if (jogo.resultado && rotulos[jogo.resultado]) {
+          var chip = $('jogo-resultado');
+          chip.textContent = rotulos[jogo.resultado];
+          chip.classList.add(jogo.resultado);
+          chip.hidden = false;
+        }
+
+        // Informações
+        $('jogo-data').textContent = jogo.dia_semana + ', ' + jogo.data_br;
+        if (jogo.hora) {
+          $('jogo-hora').textContent = jogo.hora;
+          $('jogo-item-hora').hidden = false;
+        }
+        if (jogo.local) {
+          $('jogo-local').textContent = jogo.local;
+          $('jogo-mapa').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(jogo.local);
+          $('jogo-item-local').hidden = false;
+        }
+
+        montarEscalacao(jogo, jogadores);
+
+        $('jogo-carregando').hidden = true;
+        $('jogo-conteudo').hidden = false;
+
+        carregarFotos(jogo).then(iniciarCarrossel);
+      }
+
+      // ---------- Escalação ----------
+      function cartaoJogador(slug, p) {
+        var li = document.createElement('li');
+        li.className = 'atleta';
+
+        var a = document.createElement('a');
+        a.className = 'atleta-link';
+        a.href = 'jogador.html?id=' + encodeURIComponent(slug);
+
+        var img = document.createElement('img');
+        img.src = 'imagens/jogadores/' + encodeURIComponent(p.foto);
+        img.alt = 'Foto de ' + p.nome;
+        img.loading = 'lazy';
+        img.onerror = function () { this.onerror = null; this.src = 'imagens/placeholder.svg'; };
+        a.appendChild(img);
+
+        if (p.numero !== null && p.numero !== undefined) {
+          var num = document.createElement('span');
+          num.className = 'atleta-numero';
+          num.textContent = p.numero;
+          a.appendChild(num);
+        }
+
+        var nome = document.createElement('p');
+        nome.className = 'atleta-nome';
+        nome.textContent = p.nome;
+        a.appendChild(nome);
+
+        var pos = document.createElement('p');
+        pos.className = 'atleta-posicao';
+        pos.textContent = p.posicao;
+        a.appendChild(pos);
+
+        li.appendChild(a);
+        return li;
+      }
+
+      function grupoEscalacao(titulo, slugs, jogadores) {
+        var validos = slugs.filter(function (s) { return jogadores[s]; });
+        if (validos.length === 0) return null;
+
+        var grupo = document.createElement('div');
+        grupo.className = 'grupo-elenco';
+        var h = document.createElement('h2');
+        h.textContent = titulo + ' (' + validos.length + ')';
+        grupo.appendChild(h);
+
+        var ul = document.createElement('ul');
+        ul.className = 'elenco-grade';
+        validos.forEach(function (s) { ul.appendChild(cartaoJogador(s, jogadores[s])); });
+        grupo.appendChild(ul);
+        return grupo;
+      }
+
+      function montarEscalacao(jogo, jogadores) {
+        var alvo = $('escalacao-conteudo');
+        alvo.innerHTML = '';
+
+        var titulares = grupoEscalacao('Titulares', jogo.escalacao || [], jogadores);
+        var reservas = grupoEscalacao('Reservas', jogo.reservas || [], jogadores);
+
+        if (titulares) alvo.appendChild(titulares);
+        if (reservas) alvo.appendChild(reservas);
+
+        if (!titulares && !reservas) {
+          var vazio = document.createElement('p');
+          vazio.className = 'vazio';
+          vazio.textContent = 'Escalação ainda não divulgada.';
+          alvo.appendChild(vazio);
+        }
+        $('secao-escalacao').hidden = false;
+      }
+
+      // ---------- Carrossel de fotos ----------
+      function carregarFotos(jogo) {
+        var urls = (jogo.fotos || []).map(function (f) {
+          return 'imagens/jogos/' + encodeURIComponent(jogo.id) + '/' + encodeURIComponent(f);
+        });
+        // só entram no carrossel as fotos que realmente existem
+        return Promise.all(urls.map(function (url) {
+          return new Promise(function (resolve) {
+            var img = new Image();
+            img.onload = function () { resolve(url); };
+            img.onerror = function () { resolve(null); };
+            img.src = url;
+          });
+        })).then(function (lista) {
+          return lista.filter(Boolean);
+        });
+      }
+
+      function iniciarCarrossel(fotos) {
+        if (!fotos.length) return;
+
+        var slidesEl = $('carrossel-slides');
+        var indicadoresEl = $('carrossel-indicadores');
+        var btnPrev = $('carrossel-prev');
+        var btnNext = $('carrossel-next');
+        var atual = 0;
+
+        fotos.forEach(function (url, i) {
+          var slide = document.createElement('div');
+          slide.className = 'carrossel-slide';
+          slide.style.setProperty('--bg-foto', 'url("' + url + '")');
+
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = 'Foto ' + (i + 1) + ' do jogo contra ' + $('jogo-adversario').textContent;
+          img.loading = 'lazy';
+          slide.appendChild(img);
+          slidesEl.appendChild(slide);
+
+          var ponto = document.createElement('button');
+          ponto.type = 'button';
+          ponto.className = 'indicador' + (i === 0 ? ' ativo' : '');
+          ponto.setAttribute('aria-label', 'Ir para a foto ' + (i + 1));
+          ponto.addEventListener('click', function () { irPara(i); });
+          indicadoresEl.appendChild(ponto);
+        });
+
+        function marcarIndicador() {
+          var pontos = indicadoresEl.children;
+          for (var i = 0; i < pontos.length; i++) {
+            pontos[i].classList.toggle('ativo', i === atual);
+          }
+        }
+
+        function irPara(indice) {
+          atual = (indice + fotos.length) % fotos.length;
+          slidesEl.scrollTo({ left: atual * slidesEl.clientWidth, behavior: 'smooth' });
+          marcarIndicador();
+        }
+
+        btnPrev.addEventListener('click', function () { irPara(atual - 1); });
+        btnNext.addEventListener('click', function () { irPara(atual + 1); });
+
+        // arrastar com o dedo também atualiza as bolinhas
+        slidesEl.addEventListener('scroll', function () {
+          var novo = Math.round(slidesEl.scrollLeft / slidesEl.clientWidth);
+          if (novo !== atual) { atual = novo; marcarIndicador(); }
+        });
+
+        if (fotos.length === 1) {
+          btnPrev.hidden = true;
+          btnNext.hidden = true;
+          indicadoresEl.hidden = true;
+        } else if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          var timer = setInterval(function () { irPara(atual + 1); }, 4000);
+          var caixa = document.querySelector('.carrossel-wrapper');
+          caixa.addEventListener('mouseenter', function () { clearInterval(timer); });
+          caixa.addEventListener('mouseleave', function () {
+            clearInterval(timer);
+            timer = setInterval(function () { irPara(atual + 1); }, 4000);
+          });
+        }
+
+        $('secao-carrossel').hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>

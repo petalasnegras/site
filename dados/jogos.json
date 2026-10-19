@@ -1,0 +1,70 @@
+{
+  "2026-10-17-ki-sobra": {
+    "id": "2026-10-17-ki-sobra",
+    "data": "2026-10-17",
+    "data_br": "17/10/2026",
+    "dia_semana": "sábado",
+    "hora": "10:00",
+    "adversario": "Ki Sobra",
+    "local": "R. Sd. Benedito Alves dos Santos, 60 (antigo 90) - Ponte Grande, Guarulhos - SP",
+    "placar": "",
+    "gols_pro": null,
+    "gols_contra": null,
+    "resultado": "",
+    "escalacao": [],
+    "reservas": [],
+    "fotos": []
+  },
+  "2026-10-10-uniao-balance": {
+    "id": "2026-10-10-uniao-balance",
+    "data": "2026-10-10",
+    "data_br": "10/10/2026",
+    "dia_semana": "sábado",
+    "hora": "11:00",
+    "adversario": "União Balancê",
+    "local": "Av. Domingos Fanganiello, 317",
+    "placar": "",
+    "gols_pro": null,
+    "gols_contra": null,
+    "resultado": "",
+    "escalacao": [],
+    "reservas": [],
+    "fotos": []
+  },
+  "2026-09-12-flor-da-palmeira-fc": {
+    "id": "2026-09-12-flor-da-palmeira-fc",
+    "data": "2026-09-12",
+    "data_br": "12/09/2026",
+    "dia_semana": "sábado",
+    "hora": "16:00",
+    "adversario": "Flor da Palmeira FC",
+    "local": "Av. Domingos Fanganiello, 317",
+    "placar": "",
+    "gols_pro": null,
+    "gols_contra": null,
+    "resultado": "",
+    "escalacao": [],
+    "reservas": [],
+    "fotos": []
+  },
+  "2026-08-08-roma-fc": {
+    "id": "2026-08-08-roma-fc",
+    "data": "2026-08-08",
+    "data_br": "08/08/2026",
+    "dia_semana": "sábado",
+    "hora": "13:00",
+    "adversario": "Roma FC",
+    "local": "Av. Domingos Fanganiello, 317",
+    "placar": "",
+    "gols_pro": null,
+    "gols_contra": null,
+    "resultado": "",
+    "escalacao": [],
+    "reservas": [],
+    "fotos": [
+      "1.jpeg",
+      "2.jpeg",
+      "3.jpeg"
+    ]
+  }
+}

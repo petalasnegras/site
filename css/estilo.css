@@ -804,3 +804,6 @@ h2 {
 .grupo-elenco.escondido {
   display: none;
 }
+
+a.jogo-confronto { text-decoration: none; }
+a.jogo-confronto:hover { color: var(--roxo-claro); }
