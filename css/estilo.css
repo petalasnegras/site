@@ -767,3 +767,40 @@ h2 {
   font-size: 0.95rem;
   line-height: 1.4;
 }
+
+/* ---------- Filtro de Posições ---------- */
+.filtros-posicao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.btn-filtro {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--suave);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-filtro:hover {
+  color: var(--texto);
+  border-color: var(--suave);
+  background: var(--superficie-2);
+}
+
+.btn-filtro.ativo {
+  background: var(--roxo);
+  border-color: var(--roxo-claro);
+  color: #fff;
+}
+
+.grupo-elenco.escondido {
+  display: none;
+}

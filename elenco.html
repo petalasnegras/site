@@ -39,14 +39,25 @@
       <div class="container">
         <h1>Elenco</h1>
         <br>
-        <h3><strong class="bold">Clique no atleta para ver seu perfil.</strong></h3>
+        <h3><strong class="bold">Clique no atleta para ver o perfil.</strong></h3>
+
+        <!-- FILTROS DE POSIÇÃO -->
+        <div class="filtros-posicao" role="group" aria-label="Filtrar por posição">
+          <button type="button" class="btn-filtro ativo" data-filtro="todos">Todos</button>
+          <button type="button" class="btn-filtro" data-filtro="goleiros">Goleiros</button>
+          <button type="button" class="btn-filtro" data-filtro="zagueiros">Zagueiros</button>
+          <button type="button" class="btn-filtro" data-filtro="laterais">Laterais</button>
+          <button type="button" class="btn-filtro" data-filtro="meio-campo">Meio-campo</button>
+          <button type="button" class="btn-filtro" data-filtro="ataque">Ataque</button>
+          <button type="button" class="btn-filtro" data-filtro="comissao">Comissão técnica</button>
+        </div>
       </div>
     </div>
 
     <section class="secao">
       <div class="container">
 <!-- ELENCO:INICIO -->
-        <div class="grupo-elenco">
+        <div class="grupo-elenco" data-posicao="goleiros">
           <h2>Goleiros</h2>
           <ul class="elenco-grade">
             <li class="atleta">
@@ -64,7 +75,8 @@
             </li>
           </ul>
         </div>
-        <div class="grupo-elenco">
+
+        <div class="grupo-elenco" data-posicao="zagueiros">
           <h2>Zagueiros</h2>
           <ul class="elenco-grade">
             <li class="atleta">
@@ -108,7 +120,8 @@
             </li>
           </ul>
         </div>
-        <div class="grupo-elenco">
+
+        <div class="grupo-elenco" data-posicao="laterais">
           <h2>Laterais</h2>
           <ul class="elenco-grade">
             <li class="atleta">
@@ -139,7 +152,8 @@
             </li>
           </ul>
         </div>
-        <div class="grupo-elenco">
+
+        <div class="grupo-elenco" data-posicao="meio-campo">
           <h2>Meio-campo</h2>
           <ul class="elenco-grade">
             <li class="atleta">
@@ -196,7 +210,8 @@
             </li>
           </ul>
         </div>
-        <div class="grupo-elenco">
+
+        <div class="grupo-elenco" data-posicao="ataque">
           <h2>Ataque</h2>
           <ul class="elenco-grade">
             <li class="atleta">
@@ -279,7 +294,8 @@
             </li>
           </ul>
         </div>
-        <div class="grupo-elenco">
+
+        <div class="grupo-elenco" data-posicao="comissao">
           <h2>Comissão técnica / Staff</h2>
           <ul class="elenco-grade">
             <li class="atleta">
@@ -313,5 +329,31 @@
   </footer>
 
   <script src="js/menu.js"></script>
+
+  <!-- SCRIPT DO FILTRO -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const botoesFiltro = document.querySelectorAll('.btn-filtro');
+      const gruposElenco = document.querySelectorAll('.grupo-elenco');
+
+      botoesFiltro.forEach(botao => {
+        botao.addEventListener('click', () => {
+          botoesFiltro.forEach(b => b.classList.remove('ativo'));
+          botao.classList.add('ativo');
+
+          const categoria = botao.getAttribute('data-filtro');
+
+          gruposElenco.forEach(grupo => {
+            const posicaoGrupo = grupo.getAttribute('data-posicao');
+            if (categoria === 'todos' || posicaoGrupo === categoria) {
+              grupo.classList.remove('escondido');
+            } else {
+              grupo.classList.add('escondido');
+            }
+          });
+        });
+      });
+    });
+  </script>
 </body>
 </html>
