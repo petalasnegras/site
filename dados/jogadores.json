@@ -175,8 +175,8 @@
     "grupo": "ataque",
     "foto": "novaes.jpeg",
     "formacao": "",
-    "idade": "",
-    "pe": "",
+    "idade": "17",
+    "pe": "Destro",
     "altura": "",
     "titulos": "",
     "fotos_jogo": [],
@@ -287,7 +287,7 @@
   },
   "rodrigo": {
     "nome": "Rodrigo",
-    "numero": 100,
+    "numero": null,
     "posicao": "Técnico",
     "grupo": "tecnico",
     "foto": "rodrigo.jpeg",
@@ -303,7 +303,7 @@
   },
   "dayane": {
     "nome": "Dayane",
-    "numero": 101,
+    "numero": null,
     "posicao": "Fotógrafa",
     "grupo": "tecnico",
     "foto": "dayane.jpeg",
