@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil | Pétalas Negras FC</title>
+  <meta name="description" content="Perfil e estatísticas do integrante do Pétalas Negras FC.">
+  <link rel="icon" type="image/jpeg" href="imagens/logo.jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="marca" href="index.html">
+        <img src="imagens/logo.jpeg" alt="" width="30" height="30" onerror="this.style.display='none'">
+        Pétalas Negras FC
+      </a>
+      <button class="menu-botao" id="menuBotao" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <nav class="menu" id="menu" aria-label="Principal">
+        <ul>
+          <li><a href="index.html">Início</a></li>
+          <li><a href="jogos.html">Jogos</a></li>
+          <li><a href="elenco.html" aria-current="page">Elenco</a></li>
+          <li><a href="historia.html">História</a></li>
+          <li><a href="loja.html">Manto oficial</a></li>
+          <li><a href="contato.html">Contato</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="secao">
+      <div class="container">
+        <a class="perfil-voltar" href="elenco.html">&larr; Voltar ao Elenco</a>
+
+        <div id="perfil-carregando" class="caixa">
+          <p>Carregando perfil...</p>
+        </div>
+
+        <div id="perfil-nao-encontrado" class="caixa" style="display: none;">
+          <h2>Integrante não encontrado</h2>
+          <p>Não encontramos os dados deste atleta ou membro da comissão técnica.</p>
+        </div>
+
+        <div id="perfil-conteudo" class="perfil-card caixa" style="display: none;">
+          <div class="perfil-foto-wrapper">
+            <img id="perfil-foto" class="perfil-foto" src="" alt="" onerror="this.onerror=null;this.src='imagens/placeholder.svg'">
+            <span id="perfil-numero" class="perfil-numero-destaque" style="display: none;"></span>
+          </div>
+
+          <div class="perfil-info">
+            <div class="perfil-cabecalho">
+              <h1 id="perfil-nome"></h1>
+              <p id="perfil-posicao" class="perfil-posicao"></p>
+              <p id="perfil-formacao" class="perfil-formacao" style="display: none;"></p>
+            </div>
+
+            <div id="bloco-estatisticas" style="display: none;">
+              <h2>Estatísticas na temporada</h2>
+              <div class="perfil-stats-grid" style="margin-top: 0.75rem;">
+                <div id="stat-item-jogos" class="perfil-stat-item">
+                  <strong id="stat-jogos">0</strong>
+                  <span>Jogos</span>
+                </div>
+                <div id="stat-item-gols" class="perfil-stat-item">
+                  <strong id="stat-gols">0</strong>
+                  <span>Gols</span>
+                </div>
+                <div id="stat-item-assistencias" class="perfil-stat-item">
+                  <strong id="stat-assistencias">0</strong>
+                  <span>Assistências</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; 2026 Pétalas Negras FC</span>
+      <a href="https://wa.me/5511977890581" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </footer>
+
+  <script src="js/menu.js"></script>
+  <script>
+    (function () {
+      const elCarregando = document.getElementById('perfil-carregando');
+      const elNaoEncontrado = document.getElementById('perfil-nao-encontrado');
+      const elConteudo = document.getElementById('perfil-conteudo');
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id');
+
+      if (!id) {
+        elCarregando.style.display = 'none';
+        elNaoEncontrado.style.display = 'block';
+        return;
+      }
+
+      fetch('dados/jogadores.json')
+        .then(response => {
+          if (!response.ok) throw new Error('Falha ao ler o arquivo jogadores.json');
+          return response.json();
+        })
+        .then(jogadores => {
+          const pessoa = jogadores[id];
+          elCarregando.style.display = 'none';
+
+          if (!pessoa) {
+            elNaoEncontrado.style.display = 'block';
+            return;
+          }
+
+          // Preenche dados básicos
+          const tituloNav = pessoa.numero ? `${pessoa.nome} #${pessoa.numero}` : pessoa.nome;
+          document.title = `${tituloNav} | Pétalas Negras FC`;
+          
+          document.getElementById('perfil-nome').textContent = pessoa.nome;
+          document.getElementById('perfil-posicao').textContent = pessoa.posicao;
+          document.getElementById('perfil-foto').src = `imagens/jogadores/${pessoa.foto}`;
+          document.getElementById('perfil-foto').alt = `Foto de ${pessoa.nome}`;
+
+          if (pessoa.numero) {
+            const elNumero = document.getElementById('perfil-numero');
+            elNumero.textContent = `#${pessoa.numero}`;
+            elNumero.style.display = 'inline-block';
+          }
+
+          // Verifica se é Comissão Técnica / Staff
+          const ehStaff = pessoa.grupo === 'tecnico';
+
+          if (ehStaff) {
+            if (pessoa.formacao) {
+              const elFormacao = document.getElementById('perfil-formacao');
+              elFormacao.textContent = pessoa.formacao;
+              elFormacao.style.display = 'block';
+            }
+          } else {
+            // Exibe estatísticas para atletas
+            const elBlocoStats = document.getElementById('bloco-estatisticas');
+            elBlocoStats.style.display = 'block';
+
+            const jogos = pessoa.jogos || 0;
+            const gols = pessoa.gols || 0;
+            const assist = pessoa.assistencias || 0;
+
+            document.getElementById('stat-jogos').textContent = jogos;
+            document.getElementById('stat-gols').textContent = gols;
+            document.getElementById('stat-assistencias').textContent = assist;
+
+            if (jogos === 0) document.getElementById('stat-item-jogos').classList.add('zero');
+            if (gols === 0) document.getElementById('stat-item-gols').classList.add('zero');
+            if (assist === 0) document.getElementById('stat-item-assistencias').classList.add('zero');
+          }
+
+          elConteudo.style.display = 'grid';
+        })
+        .catch(err => {
+          console.error('Erro:', err);
+          elCarregando.style.display = 'none';
+          elNaoEncontrado.style.display = 'block';
+        });
+    })();
+  </script>
+</body>
+</html>

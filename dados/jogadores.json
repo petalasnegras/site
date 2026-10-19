@@ -1,0 +1,200 @@
+{
+  "henrico": {
+    "nome": "Henrico",
+    "numero": 1,
+    "posicao": "Goleiro",
+    "grupo": "goleiro",
+    "foto": "henrico.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "jonas": {
+    "nome": "Jonas",
+    "numero": 2,
+    "posicao": "Lateral direito",
+    "grupo": "lateral",
+    "foto": "jonas.jpeg",
+    "formacao": "",
+    "jogos": 3,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "heitor": {
+    "nome": "Heitor",
+    "numero": 3,
+    "posicao": "Zagueiro",
+    "grupo": "zagueiro",
+    "foto": "heitor.jpeg",
+    "formacao": "",
+    "jogos": 2,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "enzo": {
+    "nome": "Enzo",
+    "numero": 5,
+    "posicao": "Centroavante",
+    "grupo": "ataque",
+    "foto": "enzo.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "joao-vitor": {
+    "nome": "João Vitor",
+    "numero": 6,
+    "posicao": "Volante",
+    "grupo": "meio",
+    "foto": "joao vitor.jpeg",
+    "formacao": "",
+    "jogos": 3,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "xis": {
+    "nome": "Xis",
+    "numero": 7,
+    "posicao": "Volante",
+    "grupo": "meio",
+    "foto": "xis.jpeg",
+    "formacao": "",
+    "jogos": 2,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "dereviani": {
+    "nome": "Dereviani",
+    "numero": 8,
+    "posicao": "Meio-campista",
+    "grupo": "meio",
+    "foto": "dereviani.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "biel": {
+    "nome": "Biel",
+    "numero": 9,
+    "posicao": "Centroavante",
+    "grupo": "ataque",
+    "foto": "biel.jpeg",
+    "formacao": "",
+    "jogos": 2,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "rulim": {
+    "nome": "Rulim",
+    "numero": 10,
+    "posicao": "Ponta",
+    "grupo": "ataque",
+    "foto": "rulim.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 1,
+    "assistencias": 0
+  },
+  "novaes": {
+    "nome": "Novaes",
+    "numero": 11,
+    "posicao": "Centroavante",
+    "grupo": "ataque",
+    "foto": "novaes.jpeg",
+    "formacao": "",
+    "jogos": 3,
+    "gols": 1,
+    "assistencias": 0
+  },
+  "maluli": {
+    "nome": "Maluli",
+    "numero": 12,
+    "posicao": "Zagueiro",
+    "grupo": "zagueiro",
+    "foto": "maluli.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "zampronio": {
+    "nome": "Zampronio",
+    "numero": 14,
+    "posicao": "Lateral esquerdo",
+    "grupo": "lateral",
+    "foto": "zampronio.jpeg",
+    "formacao": "",
+    "jogos": 3,
+    "gols": 0,
+    "assistencias": 1
+  },
+  "lipe": {
+    "nome": "Lipe",
+    "numero": 19,
+    "posicao": "Centroavante",
+    "grupo": "ataque",
+    "foto": "lipe.jpeg",
+    "formacao": "",
+    "jogos": 2,
+    "gols": 1,
+    "assistencias": 0
+  },
+  "lucca": {
+    "nome": "Lucca",
+    "numero": 22,
+    "posicao": "Zagueiro",
+    "grupo": "zagueiro",
+    "foto": "lucca.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "raul": {
+    "nome": "Raul",
+    "numero": 77,
+    "posicao": "Ponta",
+    "grupo": "ataque",
+    "foto": "raul.jpeg",
+    "formacao": "",
+    "jogos": 2,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "paiva": {
+    "nome": "Paiva",
+    "numero": 95,
+    "posicao": "Meio-campista",
+    "grupo": "meio",
+    "foto": "paiva.jpeg",
+    "formacao": "",
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "rodrigo": {
+    "nome": "Rodrigo",
+    "numero": 100,
+    "posicao": "Técnico",
+    "grupo": "tecnico",
+    "foto": "rodrigo.jpeg",
+    "formacao": "Formado em Ed. Física pela Unicsul",
+    "jogos": 0,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "dayane": {
+    "nome": "Dayane",
+    "numero": 101,
+    "posicao": "Fotógrafa",
+    "grupo": "tecnico",
+    "foto": "dayane.jpeg",
+    "formacao": "@dbrframe no Instagram",
+    "jogos": 0,
+    "gols": 0,
+    "assistencias": 0
+  }
+}

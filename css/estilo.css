@@ -453,6 +453,13 @@ h2 {
   white-space: nowrap;
 }
 
+.atleta-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+}
+
 /* Zerado fica discreto: só o que tem número chama atenção */
 .atleta-stats .zero strong { color: var(--suave); font-weight: 600; opacity: 0.65; }
 
@@ -601,3 +608,119 @@ h2 {
   html { scroll-behavior: auto; }
   * { transition: none !important; }
 }
+
+/* ---------- Página individual do Jogador ---------- */
+.perfil-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  color: var(--roxo-claro);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.perfil-voltar:hover {
+  text-decoration: underline;
+}
+
+.perfil-card {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.perfil-foto-wrapper {
+  position: relative;
+}
+
+.perfil-foto {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid var(--borda);
+  background: var(--superficie-2);
+}
+
+.perfil-numero-destaque {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(14, 14, 18, 0.85);
+  border: 1px solid var(--borda);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.perfil-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.perfil-cabecalho h1 {
+  margin-bottom: 0.2rem;
+}
+
+.perfil-posicao {
+  font-size: 1.1rem;
+  color: var(--suave);
+}
+
+.perfil-formacao {
+  font-size: 0.95rem;
+  color: var(--roxo-claro);
+  margin-top: 0.2rem;
+}
+
+.perfil-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  max-width: 420px;
+}
+
+.perfil-stat-item {
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 1rem 0.75rem;
+  text-align: center;
+}
+
+.perfil-stat-item strong {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--roxo-claro);
+}
+
+.perfil-stat-item span {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--suave);
+}
+
+.perfil-stat-item.zero strong {
+  color: var(--suave);
+  opacity: 0.65;
+  font-weight: 600;
+}
+
+@media (max-width: 680px) {
+  .perfil-card {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .perfil-foto {
+    max-width: 240px;
+  }
+}
+

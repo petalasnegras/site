@@ -33,6 +33,7 @@ Só usa a biblioteca padrão do Python 3.8 ou mais novo.
 import argparse
 import csv
 import html
+import json
 import re
 import sys
 import unicodedata
@@ -243,26 +244,51 @@ def html_estatisticas(a):
 def html_atleta(a):
     foto = (f'              <img src="imagens/jogadores/{quote(a["foto"])}" alt="Foto de {esc(a["nome"])}" '
             f'loading="lazy" onerror="this.onerror=null;this.src=\'imagens/placeholder.svg\'">')
-    if a["grupo"] == GRUPO_STAFF:
-        linhas = [
-            '            <li class="atleta">',
-            foto,
-            f'              <p class="atleta-nome">{esc(a["nome"])}</p>',
-            f'              <p class="atleta-posicao">{esc(a["posicao"])}</p>',
-        ]
-        if a["formacao"]:
-            linhas.append(f'              <p class="atleta-posicao">{esc(a["formacao"])}</p>')
-        linhas.append('            </li>')
-        return "\n".join(linhas)
+    
+    # Gera um id/slug único baseado no nome (ex: "João Vitor" -> "joao-vitor")
+    slug_id = sem_acento(a["nome"]).strip().replace(" ", "-")
+    url_perfil = f"jogador.html?id={slug_id}"
 
-    return f"""            <li class="atleta">
+    if a["grupo"] == GRUPO_STAFF:
+        formacao_html = f'\n              <p class="atleta-posicao">{esc(a["formacao"])}</p>' if a["formacao"] else ''
+        return f"""            <li class="atleta">
+              <a href="{url_perfil}" class="atleta-link">
 {foto}
-              <span class="atleta-numero">{a['numero']}</span>
-              <p class="atleta-nome">{esc(a['nome'])}</p>
-              <p class="atleta-posicao">{esc(a['posicao'])}</p>
-{html_estatisticas(a)}
+                <p class="atleta-nome">{esc(a["nome"])}</p>
+                <p class="atleta-posicao">{esc(a["posicao"])}</p>{formacao_html}
+              </a>
             </li>"""
 
+    return f"""            <li class="atleta">
+              <a href="{url_perfil}" class="atleta-link">
+{foto}
+                <span class="atleta-numero">{a['numero']}</span>
+                <p class="atleta-nome">{esc(a['nome'])}</p>
+                <p class="atleta-posicao">{esc(a['posicao'])}</p>
+{html_estatisticas(a)}
+              </a>
+            </li>"""
+
+def gerar_json_jogadores(atletas):
+    """Gera um arquivo JSON com todos os integrantes (atletas e staff) para a página jogador.html."""
+    dados = {}
+    for a in atletas:
+        slug_id = sem_acento(a["nome"]).strip().replace(" ", "-")
+        dados[slug_id] = {
+            "nome": a["nome"],
+            "numero": a["numero"],
+            "posicao": a["posicao"],
+            "grupo": a["grupo"],
+            "foto": a["foto"],
+            "formacao": a["formacao"],
+            "jogos": a.get("jogos", 0),
+            "gols": a.get("gols", 0),
+            "assistencias": a.get("assistencias", 0)
+        }
+    
+    arquivo_json = PASTA / "jogadores.json"
+    arquivo_json.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"  {arquivo_json.name}: atualizado")
 
 def chave_ordem(a):
     return (a["numero"] is None, a["numero"] or 0, a["nome"])
@@ -309,6 +335,7 @@ def atualizar_pagina(atletas):
     staff = sum(1 for a in atletas if a["grupo"] == GRUPO_STAFF)
     print(f"{len(atletas) - staff} atletas e {staff} da comissão técnica no elenco.csv.")
     print(f"  {PAGINA_ELENCO.name}: {'atualizado' if mudou else 'já estava em dia'}")
+    gerar_json_jogadores(atletas)
 
 
 # ---------------------------------------------------------------- perguntas
