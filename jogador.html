@@ -10,6 +10,189 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/estilo.css">
+  <style>
+    /* Estilos refinados para o perfil do jogador */
+    .fatos-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+      padding: 0.85rem;
+      background: var(--superficie-2);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+    }
+    .fato-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-width: 0;
+      padding: 0.2rem;
+    }
+    .fato-item + .fato-item {
+      border-left: 1px solid var(--borda);
+    }
+    .fato-rotulo {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--suave);
+      margin-bottom: 0.15rem;
+      white-space: nowrap;
+    }
+    .fato-valor {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--texto);
+    }
+    .bloco-titulos {
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      background: rgba(255, 215, 0, 0.05);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-left: 3px solid #ffd700;
+      border-radius: 10px;
+    }
+    .bloco-titulos h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 0.4rem 0;
+      color: #ffd700;
+    }
+    .bloco-titulos p {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: var(--texto);
+    }
+
+    /* Carrossel Interativo com Fundo Estilizado no Tom do Site + Roxo Claro */
+    .secao-carrossel {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--borda);
+    }
+    .secao-carrossel h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      color: var(--texto);
+    }
+    .carrossel-wrapper {
+      position: relative;
+      width: 100%;
+      background: var(--fundo);
+      border-radius: 14px;
+      border: 1px solid var(--borda);
+      overflow: hidden;
+    }
+    .carrossel-slides {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .carrossel-slides::-webkit-scrollbar {
+      display: none;
+    }
+    .carrossel-slide {
+      position: relative;
+      min-width: 100%;
+      height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      /* Fundo no tom do site com um brilho suave e discreto em roxo claro no centro */
+      background: radial-gradient(circle, rgba(181, 122, 212, 0.12) 0%, rgba(14, 14, 18, 0.98) 75%);
+    }
+
+    /* Foto desfocada bem sutil e suave no fundo */
+    .carrossel-slide::before {
+      content: '';
+      position: absolute;
+      inset: -15px;
+      background-image: var(--bg-foto);
+      background-size: cover;
+      background-position: center;
+      filter: blur(28px) brightness(0.25) opacity(0.5);
+      transform: scale(1.15);
+      z-index: 1;
+    }
+
+    /* Foto principal no centro */
+    .carrossel-slide img {
+      position: relative;
+      z-index: 2;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Botões Laterais (< >) */
+    .carrossel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(22, 22, 28, 0.85);
+      border: 1px solid var(--borda);
+      color: var(--texto);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      z-index: 3;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+    .carrossel-btn:hover {
+      background: var(--roxo);
+      border-color: var(--roxo-claro);
+      transform: translateY(-50%) scale(1.1);
+    }
+    .carrossel-btn.prev { left: 10px; }
+    .carrossel-btn.next { right: 10px; }
+
+    .carrossel-indicadores {
+      position: absolute;
+      bottom: 0.75rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.4rem;
+      z-index: 3;
+    }
+    .indicador {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      cursor: pointer;
+    }
+    .indicador.ativo {
+      background: var(--roxo-claro);
+      transform: scale(1.3);
+      box-shadow: 0 0 8px var(--roxo-claro);
+    }
+
+    @media (max-width: 480px) {
+      .fatos-grid { gap: 0.5rem; padding: 0.6rem; }
+      .fato-valor { font-size: 0.85rem; }
+      .carrossel-slide, .carrossel-slide img { max-height: 380px; }
+      .carrossel-btn { width: 32px; height: 32px; }
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -61,9 +244,33 @@
               <p id="perfil-formacao" class="perfil-formacao" style="display: none;"></p>
             </div>
 
+            <!-- Fatos/Perfil físico e técnico do atleta -->
+            <div id="bloco-fatos" class="fatos-grid" style="display: none;">
+              <div id="fato-item-idade" class="fato-item" style="display: none;">
+                <span class="fato-rotulo">Idade</span>
+                <span id="fato-idade" class="fato-valor"></span>
+              </div>
+              <div id="fato-item-pe" class="fato-item" style="display: none;">
+                <span class="fato-rotulo">Pé Dom.</span>
+                <span id="fato-pe" class="fato-valor"></span>
+              </div>
+              <div id="fato-item-altura" class="fato-item" style="display: none;">
+                <span class="fato-rotulo">Altura</span>
+                <span id="fato-altura" class="fato-valor"></span>
+              </div>
+            </div>
+
+            <!-- Bloco de Títulos -->
+            <div id="bloco-titulos" class="bloco-titulos" style="display: none;">
+              <h3>🏆 Títulos & Conquistas</h3>
+              <p id="perfil-titulos" style="white-space: pre-line;"></p>
+              <br>
+            </div>
+
+            <!-- Estatísticas de jogo -->
             <div id="bloco-estatisticas" style="display: none;">
               <h2>Estatísticas na temporada</h2>
-              <div class="perfil-stats-grid" style="margin-top: 0.75rem;">
+              <div class="perfil-stats-grid" style="margin-top: 0.5rem;">
                 <div id="stat-item-jogos" class="perfil-stat-item">
                   <strong id="stat-jogos">0</strong>
                   <span>Jogos</span>
@@ -78,7 +285,20 @@
                 </div>
               </div>
             </div>
+
           </div>
+
+          <!-- Carrossel de fotos em jogo -->
+          <div id="secao-carrossel" class="secao-carrossel" style="display: none; grid-column: 1 / -1;">
+            <h2>Em Ação 📸</h2>
+            <div class="carrossel-wrapper">
+              <button id="carrossel-prev" class="carrossel-btn prev" aria-label="Anterior">&lt;</button>
+              <div id="carrossel-slides" class="carrossel-slides"></div>
+              <button id="carrossel-next" class="carrossel-btn next" aria-label="Próximo">&gt;</button>
+              <div id="carrossel-indicadores" class="carrossel-indicadores"></div>
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -147,6 +367,39 @@
               elFormacao.style.display = 'block';
             }
           } else {
+            // Preenche Perfil Físico / Técnico (Idade, Pé, Altura)
+            let temFatos = false;
+
+            if (pessoa.idade) {
+              document.getElementById('fato-idade').textContent = `${pessoa.idade} anos`;
+              document.getElementById('fato-item-idade').style.display = 'flex';
+              temFatos = true;
+            }
+
+            if (pessoa.pe) {
+              document.getElementById('fato-pe').textContent = pessoa.pe;
+              document.getElementById('fato-item-pe').style.display = 'flex';
+              temFatos = true;
+            }
+
+            if (pessoa.altura) {
+              const altFormatada = pessoa.altura.toLowerCase().includes('m') ? pessoa.altura : `${pessoa.altura} m`;
+              document.getElementById('fato-altura').textContent = altFormatada;
+              document.getElementById('fato-item-altura').style.display = 'flex';
+              temFatos = true;
+            }
+
+            if (temFatos) {
+              document.getElementById('bloco-fatos').style.display = 'grid';
+            }
+
+            // Preenche Títulos
+            if (pessoa.titulos) {
+              const titulosFormatados = pessoa.titulos.split(/\s*\|\s*|\s*,\s*/).join('\n• ');
+              document.getElementById('perfil-titulos').textContent = `• ${titulosFormatados}`;
+              document.getElementById('bloco-titulos').style.display = 'block';
+            }
+
             // Exibe estatísticas para atletas
             const elBlocoStats = document.getElementById('bloco-estatisticas');
             elBlocoStats.style.display = 'block';
@@ -164,6 +417,9 @@
             if (assist === 0) document.getElementById('stat-item-assistencias').classList.add('zero');
           }
 
+          // Inicializa Carrossel se houver fotos
+          inicializarCarrossel(id, pessoa.fotos_jogo);
+
           elConteudo.style.display = 'grid';
         })
         .catch(err => {
@@ -171,6 +427,78 @@
           elCarregando.style.display = 'none';
           elNaoEncontrado.style.display = 'block';
         });
+
+      function inicializarCarrossel(slugId, listaFotos) {
+        const fotos = listaFotos && listaFotos.length > 0 ? listaFotos : [];
+        if (fotos.length === 0) return;
+
+        const containerCarrossel = document.getElementById('secao-carrossel');
+        const slidesEl = document.getElementById('carrossel-slides');
+        const indicadoresEl = document.getElementById('carrossel-indicadores');
+        const btnPrev = document.getElementById('carrossel-prev');
+        const btnNext = document.getElementById('carrossel-next');
+
+        slidesEl.innerHTML = '';
+        indicadoresEl.innerHTML = '';
+
+        fotos.forEach((foto, idx) => {
+          const slide = document.createElement('div');
+          slide.className = 'carrossel-slide';
+          
+          const urlFoto = `imagens/perfil/${slugId}/${foto}`;
+          slide.style.setProperty('--bg-foto', `url("${urlFoto}")`);
+
+          slide.innerHTML = `<img src="${urlFoto}" alt="Foto em jogo de ${slugId}" loading="lazy" onerror="this.parentElement.remove();">`;
+          slidesEl.appendChild(slide);
+
+          const ind = document.createElement('div');
+          ind.className = `indicador ${idx === 0 ? 'ativo' : ''}`;
+          ind.addEventListener('click', () => irParaSlide(idx));
+          indicadoresEl.appendChild(ind);
+        });
+
+        containerCarrossel.style.display = 'block';
+
+        let slideAtual = 0;
+
+        function irParaSlide(indice) {
+          slideAtual = (indice + fotos.length) % fotos.length;
+          const larguraSlide = slidesEl.clientWidth;
+          slidesEl.scrollTo({
+            left: slideAtual * larguraSlide,
+            behavior: 'smooth'
+          });
+          atualizarIndicadores();
+        }
+
+        function atualizarIndicadores() {
+          const todosIndicadores = indicadoresEl.querySelectorAll('.indicador');
+          todosIndicadores.forEach((dot, i) => {
+            dot.classList.toggle('ativo', i === slideAtual);
+          });
+        }
+
+        btnPrev.addEventListener('click', () => irParaSlide(slideAtual - 1));
+        btnNext.addEventListener('click', () => irParaSlide(slideAtual + 1));
+
+        // Sincroniza o arrastar manual (swipe) com as bolinhas
+        slidesEl.addEventListener('scroll', () => {
+          const larguraSlide = slidesEl.clientWidth;
+          const novoIndice = Math.round(slidesEl.scrollLeft / larguraSlide);
+          if (novoIndice !== slideAtual) {
+            slideAtual = novoIndice;
+            atualizarIndicadores();
+          }
+        });
+
+        // Autoplay inteligente
+        let autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
+        const wrapper = document.querySelector('.carrossel-wrapper');
+        wrapper.addEventListener('mouseenter', () => clearInterval(autoplay));
+        wrapper.addEventListener('mouseleave', () => {
+          autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
+        });
+      }
     })();
   </script>
 </body>
