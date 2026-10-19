@@ -60,6 +60,8 @@ h2 {
 
 .suave { color: var(--suave); }
 
+.bold { color: var(--roxo-claro); }
+
 /* ---------- Cabeçalho ---------- */
 .site-header {
   position: sticky;
