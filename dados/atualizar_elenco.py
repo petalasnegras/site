@@ -65,7 +65,7 @@ GRUPOS = [
     ("lateral", "Laterais", ["lateral"]),
     ("meio", "Meio-campo", ["volante", "meio", "meia", "armador"]),
     ("ataque", "Ataque", ["ataque", "atacante", "centroavante", "ponta", "pivo"]),
-    ("tecnico", "Comissão técnica", ["tecnico", "treinador", "comissao", "preparador", "auxiliar"]),
+    ("tecnico", "Comissão técnica / Staff", ["tecnico", "treinador", "comissao", "preparador", "auxiliar", "fotografo", "fotografa"]),
 ]
 
 GRUPO_STAFF = "tecnico"
