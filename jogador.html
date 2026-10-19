@@ -68,8 +68,16 @@
       color: var(--texto);
     }
 
-    /* Carrossel Interativo com Fundo Estilizado no Tom do Site + Roxo Claro */
+    /* Colunas do perfil: minmax(0, 1fr) impede que uma foto grande alargue a página no celular */
+    .perfil-card { grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); }
+    .perfil-card > * { min-width: 0; }
+    @media (max-width: 680px) {
+      .perfil-card { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* Carrossel de fotos em jogo */
     .secao-carrossel {
+      min-width: 0;
       margin-top: 2rem;
       padding-top: 1.5rem;
       border-top: 1px solid var(--borda);
@@ -82,6 +90,8 @@
     .carrossel-wrapper {
       position: relative;
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       background: var(--fundo);
       border-radius: 14px;
       border: 1px solid var(--borda);
@@ -89,6 +99,8 @@
     }
     .carrossel-slides {
       display: flex;
+      width: 100%;
+      min-width: 0;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
@@ -100,13 +112,17 @@
     }
     .carrossel-slide {
       position: relative;
-      min-width: 100%;
-      height: 480px;
+      /* largura fixa em 100% do carrossel: uma foto grande nunca alarga o slide */
+      flex: 0 0 100%;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      height: clamp(280px, 70vh, 520px);
       display: flex;
       align-items: center;
       justify-content: center;
       scroll-snap-align: center;
-      flex-shrink: 0;
+      scroll-snap-stop: always;
       overflow: hidden;
       /* Fundo no tom do site com um brilho suave e discreto em roxo claro no centro */
       background: radial-gradient(circle, rgba(181, 122, 212, 0.12) 0%, rgba(14, 14, 18, 0.98) 75%);
@@ -125,12 +141,14 @@
       z-index: 1;
     }
 
-    /* Foto principal no centro */
+    /* Foto principal no centro: sempre inteira dentro da caixa, em qualquer tamanho */
     .carrossel-slide img {
       position: relative;
       z-index: 2;
+      display: block;
       max-width: 100%;
       max-height: 100%;
+      min-width: 0;
       width: auto;
       height: auto;
       object-fit: contain;
@@ -175,6 +193,8 @@
     .indicador {
       width: 8px;
       height: 8px;
+      padding: 0;
+      border: 0;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.3);
       transition: background-color 0.3s ease, transform 0.3s ease;
@@ -189,7 +209,7 @@
     @media (max-width: 480px) {
       .fatos-grid { gap: 0.5rem; padding: 0.6rem; }
       .fato-valor { font-size: 0.85rem; }
-      .carrossel-slide, .carrossel-slide img { max-height: 380px; }
+      .carrossel-slide { height: clamp(260px, 62vh, 420px); }
       .carrossel-btn { width: 32px; height: 32px; }
     }
   </style>
@@ -292,9 +312,9 @@
           <div id="secao-carrossel" class="secao-carrossel" style="display: none; grid-column: 1 / -1;">
             <h2>Em Ação 📸</h2>
             <div class="carrossel-wrapper">
-              <button id="carrossel-prev" class="carrossel-btn prev" aria-label="Anterior">&lt;</button>
+              <button id="carrossel-prev" class="carrossel-btn prev" type="button" aria-label="Foto anterior">&lt;</button>
               <div id="carrossel-slides" class="carrossel-slides"></div>
-              <button id="carrossel-next" class="carrossel-btn next" aria-label="Próximo">&gt;</button>
+              <button id="carrossel-next" class="carrossel-btn next" type="button" aria-label="Próxima foto">&gt;</button>
               <div id="carrossel-indicadores" class="carrossel-indicadores"></div>
             </div>
           </div>
@@ -345,7 +365,7 @@
           // Preenche dados básicos
           const tituloNav = pessoa.numero ? `${pessoa.nome} #${pessoa.numero}` : pessoa.nome;
           document.title = `${tituloNav} | Pétalas Negras FC`;
-          
+
           document.getElementById('perfil-nome').textContent = pessoa.nome;
           document.getElementById('perfil-posicao').textContent = pessoa.posicao;
           document.getElementById('perfil-foto').src = `imagens/jogadores/${pessoa.foto}`;
@@ -417,10 +437,12 @@
             if (assist === 0) document.getElementById('stat-item-assistencias').classList.add('zero');
           }
 
-          // Inicializa Carrossel se houver fotos
-          inicializarCarrossel(id, pessoa.fotos_jogo);
-
           elConteudo.style.display = 'grid';
+
+          // Carrossel: só entram as fotos que realmente existem
+          carregarFotos(id, pessoa.fotos_jogo).then(function (fotos) {
+            inicializarCarrossel(pessoa.nome, fotos);
+          });
         })
         .catch(err => {
           console.error('Erro:', err);
@@ -428,8 +450,18 @@
           elNaoEncontrado.style.display = 'block';
         });
 
-      function inicializarCarrossel(slugId, listaFotos) {
-        const fotos = listaFotos && listaFotos.length > 0 ? listaFotos : [];
+      function carregarFotos(slugId, listaFotos) {
+        const urls = (listaFotos || []).map(foto =>
+          `imagens/perfil/${encodeURIComponent(slugId)}/${encodeURIComponent(foto)}`);
+        return Promise.all(urls.map(url => new Promise(resolve => {
+          const img = new Image();
+          img.onload = () => resolve(url);
+          img.onerror = () => resolve(null);
+          img.src = url;
+        }))).then(lista => lista.filter(Boolean));
+      }
+
+      function inicializarCarrossel(nome, fotos) {
         if (fotos.length === 0) return;
 
         const containerCarrossel = document.getElementById('secao-carrossel');
@@ -437,39 +469,29 @@
         const indicadoresEl = document.getElementById('carrossel-indicadores');
         const btnPrev = document.getElementById('carrossel-prev');
         const btnNext = document.getElementById('carrossel-next');
+        let slideAtual = 0;
 
-        slidesEl.innerHTML = '';
-        indicadoresEl.innerHTML = '';
-
-        fotos.forEach((foto, idx) => {
+        fotos.forEach((urlFoto, idx) => {
           const slide = document.createElement('div');
           slide.className = 'carrossel-slide';
-          
-          const urlFoto = `imagens/perfil/${slugId}/${foto}`;
           slide.style.setProperty('--bg-foto', `url("${urlFoto}")`);
 
-          slide.innerHTML = `<img src="${urlFoto}" alt="Foto em jogo de ${slugId}" loading="lazy" onerror="this.parentElement.remove();">`;
+          const img = document.createElement('img');
+          img.src = urlFoto;
+          img.alt = `Foto ${idx + 1} em jogo de ${nome}`;
+          img.loading = 'lazy';
+          slide.appendChild(img);
           slidesEl.appendChild(slide);
 
-          const ind = document.createElement('div');
+          const ind = document.createElement('button');
+          ind.type = 'button';
           ind.className = `indicador ${idx === 0 ? 'ativo' : ''}`;
+          ind.setAttribute('aria-label', `Ir para a foto ${idx + 1}`);
           ind.addEventListener('click', () => irParaSlide(idx));
           indicadoresEl.appendChild(ind);
         });
 
         containerCarrossel.style.display = 'block';
-
-        let slideAtual = 0;
-
-        function irParaSlide(indice) {
-          slideAtual = (indice + fotos.length) % fotos.length;
-          const larguraSlide = slidesEl.clientWidth;
-          slidesEl.scrollTo({
-            left: slideAtual * larguraSlide,
-            behavior: 'smooth'
-          });
-          atualizarIndicadores();
-        }
 
         function atualizarIndicadores() {
           const todosIndicadores = indicadoresEl.querySelectorAll('.indicador');
@@ -478,26 +500,41 @@
           });
         }
 
+        function irParaSlide(indice) {
+          slideAtual = (indice + fotos.length) % fotos.length;
+          slidesEl.scrollTo({
+            left: slideAtual * slidesEl.clientWidth,
+            behavior: 'smooth'
+          });
+          atualizarIndicadores();
+        }
+
         btnPrev.addEventListener('click', () => irParaSlide(slideAtual - 1));
         btnNext.addEventListener('click', () => irParaSlide(slideAtual + 1));
 
         // Sincroniza o arrastar manual (swipe) com as bolinhas
         slidesEl.addEventListener('scroll', () => {
-          const larguraSlide = slidesEl.clientWidth;
-          const novoIndice = Math.round(slidesEl.scrollLeft / larguraSlide);
+          const novoIndice = Math.round(slidesEl.scrollLeft / slidesEl.clientWidth);
           if (novoIndice !== slideAtual) {
             slideAtual = novoIndice;
             atualizarIndicadores();
           }
         });
 
-        // Autoplay inteligente
-        let autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
-        const wrapper = document.querySelector('.carrossel-wrapper');
-        wrapper.addEventListener('mouseenter', () => clearInterval(autoplay));
-        wrapper.addEventListener('mouseleave', () => {
-          autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
-        });
+        if (fotos.length === 1) {
+          btnPrev.hidden = true;
+          btnNext.hidden = true;
+          indicadoresEl.hidden = true;
+        } else if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          // Autoplay: pausa quando o mouse está em cima
+          let autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
+          const wrapper = document.querySelector('.carrossel-wrapper');
+          wrapper.addEventListener('mouseenter', () => clearInterval(autoplay));
+          wrapper.addEventListener('mouseleave', () => {
+            clearInterval(autoplay);
+            autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
+          });
+        }
       }
     })();
   </script>

@@ -7,12 +7,218 @@
     "hora": "10:00",
     "adversario": "Ki Sobra",
     "local": "R. Sd. Benedito Alves dos Santos, 60 (antigo 90) - Ponte Grande, Guarulhos - SP",
-    "placar": "",
-    "gols_pro": null,
-    "gols_contra": null,
-    "resultado": "",
-    "escalacao": [],
-    "reservas": [],
+    "placar": "3 x 4",
+    "gols_pro": 3,
+    "gols_contra": 4,
+    "resultado": "derrota",
+    "titulares": [
+      {
+        "nome": "?",
+        "numero": null,
+        "posicao": "Goleiro",
+        "grupo": "goleiro",
+        "slug": null,
+        "suporte": true,
+        "entrou_por": null,
+        "saiu_para": "Henrico",
+        "minuto": null
+      },
+      {
+        "nome": "Maluli",
+        "numero": 12,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "maluli",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Lucca",
+        "numero": 22,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "lucca",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Zampronio",
+        "numero": 14,
+        "posicao": "Lateral esquerdo",
+        "grupo": "lateral",
+        "slug": "zampronio",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "João Vitor",
+        "numero": 6,
+        "posicao": "Volante",
+        "grupo": "meio",
+        "slug": "joao-vitor",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Xis",
+        "numero": 7,
+        "posicao": "Volante",
+        "grupo": "meio",
+        "slug": "xis",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Paiva",
+        "numero": 95,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "paiva",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "Davi",
+        "minuto": null
+      },
+      {
+        "nome": "Pepe",
+        "numero": null,
+        "posicao": "Meia-amador",
+        "grupo": "meio",
+        "slug": null,
+        "suporte": true,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Enzo",
+        "numero": 5,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "enzo",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Rulim",
+        "numero": 10,
+        "posicao": "Ponta",
+        "grupo": "ataque",
+        "slug": "rulim",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Lipe",
+        "numero": 19,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "lipe",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "Novaes",
+        "minuto": null
+      }
+    ],
+    "reservas": [
+      {
+        "nome": "Henrico",
+        "numero": 1,
+        "posicao": "Goleiro",
+        "grupo": "goleiro",
+        "slug": "henrico",
+        "suporte": false,
+        "entrou_por": "?",
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Davi",
+        "numero": null,
+        "posicao": "Lateral Esquerdo",
+        "grupo": "lateral",
+        "slug": null,
+        "suporte": true,
+        "entrou_por": "Paiva",
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Dereviani",
+        "numero": 8,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "dereviani",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Ivan",
+        "numero": 21,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "ivan",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Biel",
+        "numero": 9,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "biel",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Novaes",
+        "numero": 11,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "novaes",
+        "suporte": false,
+        "entrou_por": "Lipe",
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "substituicoes": [
+      {
+        "entrou": "Henrico",
+        "saiu": "?",
+        "minuto": ""
+      },
+      {
+        "entrou": "Davi",
+        "saiu": "Paiva",
+        "minuto": ""
+      },
+      {
+        "entrou": "Novaes",
+        "saiu": "Lipe",
+        "minuto": ""
+      }
+    ],
     "fotos": []
   },
   "2026-10-10-uniao-balance": {
@@ -27,8 +233,165 @@
     "gols_pro": null,
     "gols_contra": null,
     "resultado": "",
-    "escalacao": [],
-    "reservas": [],
+    "titulares": [
+      {
+        "nome": "Maluli",
+        "numero": 12,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "maluli",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Lucca",
+        "numero": 22,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "lucca",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Jonas",
+        "numero": 2,
+        "posicao": "Lateral direito",
+        "grupo": "lateral",
+        "slug": "jonas",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Xis",
+        "numero": 7,
+        "posicao": "Volante",
+        "grupo": "meio",
+        "slug": "xis",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Dereviani",
+        "numero": 8,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "dereviani",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Paiva",
+        "numero": 95,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "paiva",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Derick",
+        "numero": 96,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "derick",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "Henrico",
+        "minuto": null
+      },
+      {
+        "nome": "Enzo",
+        "numero": 5,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "enzo",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Biel",
+        "numero": 9,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "biel",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "Ivan",
+        "minuto": null
+      },
+      {
+        "nome": "Rulim",
+        "numero": 10,
+        "posicao": "Ponta",
+        "grupo": "ataque",
+        "slug": "rulim",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Lipe",
+        "numero": 19,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "lipe",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "reservas": [
+      {
+        "nome": "Henrico",
+        "numero": 1,
+        "posicao": "Goleiro",
+        "grupo": "goleiro",
+        "slug": "henrico",
+        "suporte": false,
+        "entrou_por": "Derick",
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Ivan",
+        "numero": 21,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "ivan",
+        "suporte": false,
+        "entrou_por": "Biel",
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "substituicoes": [
+      {
+        "entrou": "Henrico",
+        "saiu": "Derick",
+        "minuto": ""
+      },
+      {
+        "entrou": "Ivan",
+        "saiu": "Biel",
+        "minuto": ""
+      }
+    ],
     "fotos": []
   },
   "2026-09-12-flor-da-palmeira-fc": {
@@ -43,8 +406,187 @@
     "gols_pro": null,
     "gols_contra": null,
     "resultado": "",
-    "escalacao": [],
-    "reservas": [],
+    "titulares": [
+      {
+        "nome": "Henrico",
+        "numero": 1,
+        "posicao": "Goleiro",
+        "grupo": "goleiro",
+        "slug": "henrico",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Maluli",
+        "numero": 12,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "maluli",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "Heitor",
+        "minuto": "45'"
+      },
+      {
+        "nome": "Lucca",
+        "numero": 22,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "lucca",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Jonas",
+        "numero": 2,
+        "posicao": "Lateral direito",
+        "grupo": "lateral",
+        "slug": "jonas",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "João Vitor",
+        "minuto": "45'"
+      },
+      {
+        "nome": "Zampronio",
+        "numero": 14,
+        "posicao": "Lateral esquerdo",
+        "grupo": "lateral",
+        "slug": "zampronio",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Dereviani",
+        "numero": 8,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "dereviani",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Paiva",
+        "numero": 95,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "paiva",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Enzo",
+        "numero": 5,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "enzo",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Rulim",
+        "numero": 10,
+        "posicao": "Ponta",
+        "grupo": "ataque",
+        "slug": "rulim",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Novaes",
+        "numero": 11,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "novaes",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Raul",
+        "numero": 77,
+        "posicao": "Ponta",
+        "grupo": "ataque",
+        "slug": "raul",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "reservas": [
+      {
+        "nome": "Heitor",
+        "numero": 3,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "heitor",
+        "suporte": false,
+        "entrou_por": "Maluli",
+        "saiu_para": null,
+        "minuto": "45'"
+      },
+      {
+        "nome": "João Vitor",
+        "numero": 6,
+        "posicao": "Volante",
+        "grupo": "meio",
+        "slug": "joao-vitor",
+        "suporte": false,
+        "entrou_por": "Jonas",
+        "saiu_para": null,
+        "minuto": "45'"
+      },
+      {
+        "nome": "Ivan",
+        "numero": 21,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "ivan",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Derick",
+        "numero": 96,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "derick",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "substituicoes": [
+      {
+        "entrou": "Heitor",
+        "saiu": "Maluli",
+        "minuto": "45'"
+      },
+      {
+        "entrou": "João Vitor",
+        "saiu": "Jonas",
+        "minuto": "45'"
+      }
+    ],
     "fotos": []
   },
   "2026-08-08-roma-fc": {
@@ -59,8 +601,182 @@
     "gols_pro": null,
     "gols_contra": null,
     "resultado": "",
-    "escalacao": [],
-    "reservas": [],
+    "titulares": [
+      {
+        "nome": "Henrico",
+        "numero": 1,
+        "posicao": "Goleiro",
+        "grupo": "goleiro",
+        "slug": "henrico",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Heitor",
+        "numero": 3,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "heitor",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Lucca",
+        "numero": 22,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "lucca",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Jonas",
+        "numero": 2,
+        "posicao": "Lateral direito",
+        "grupo": "lateral",
+        "slug": "jonas",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": "Derick",
+        "minuto": null
+      },
+      {
+        "nome": "Zampronio",
+        "numero": 14,
+        "posicao": "Lateral esquerdo",
+        "grupo": "lateral",
+        "slug": "zampronio",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "João Vitor",
+        "numero": 6,
+        "posicao": "Volante",
+        "grupo": "meio",
+        "slug": "joao-vitor",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Dereviani",
+        "numero": 8,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "dereviani",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Paiva",
+        "numero": 95,
+        "posicao": "Meio-campista",
+        "grupo": "meio",
+        "slug": "paiva",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Rulim",
+        "numero": 10,
+        "posicao": "Ponta",
+        "grupo": "ataque",
+        "slug": "rulim",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Novaes",
+        "numero": 11,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "novaes",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Raul",
+        "numero": 77,
+        "posicao": "Ponta",
+        "grupo": "ataque",
+        "slug": "raul",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "reservas": [
+      {
+        "nome": "Maluli",
+        "numero": 12,
+        "posicao": "Zagueiro",
+        "grupo": "zagueiro",
+        "slug": "maluli",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Ivan",
+        "numero": 21,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "ivan",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Derick",
+        "numero": 96,
+        "posicao": "Meio-campo",
+        "grupo": "meio",
+        "slug": "derick",
+        "suporte": false,
+        "entrou_por": "Jonas",
+        "saiu_para": null,
+        "minuto": null
+      },
+      {
+        "nome": "Enzo",
+        "numero": 5,
+        "posicao": "Centroavante",
+        "grupo": "ataque",
+        "slug": "enzo",
+        "suporte": false,
+        "entrou_por": null,
+        "saiu_para": null,
+        "minuto": null
+      }
+    ],
+    "substituicoes": [
+      {
+        "entrou": "Derick",
+        "saiu": "Jonas",
+        "minuto": ""
+      }
+    ],
     "fotos": [
       "1.jpeg",
       "2.jpeg",

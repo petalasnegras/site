@@ -93,6 +93,85 @@
     .jg-bloco > h2 { margin-bottom: 1rem; font-size: 1.1rem; }
     .jg-bloco .grupo-elenco + .grupo-elenco { margin-top: 1.75rem; }
 
+    /* Escalação recolhível (abre e fecha sem sair da página) */
+    .jg-detalhes {
+      background: var(--superficie);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      transition: border-color 0.15s ease;
+    }
+    .jg-detalhes:hover,
+    .jg-detalhes[open] { border-color: rgba(181, 122, 212, 0.45); }
+    .jg-detalhes summary {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      list-style: none;
+      cursor: pointer;
+      border-radius: 12px;
+    }
+    .jg-detalhes summary::-webkit-details-marker { display: none; }
+    .jg-detalhes summary h2 { margin: 0; font-size: 1.1rem; }
+    .jg-resumo { flex: 1; font-size: 0.88rem; color: var(--suave); }
+    .jg-detalhes summary::after {
+      content: '';
+      flex-shrink: 0;
+      width: 0.55rem;
+      height: 0.55rem;
+      border-right: 2px solid var(--roxo-claro);
+      border-bottom: 2px solid var(--roxo-claro);
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+    }
+    .jg-detalhes[open] summary::after { transform: rotate(-135deg); }
+    .jg-nota { margin: -0.4rem 0 1rem; font-size: 0.85rem; color: var(--suave); }
+    .jg-detalhes #escalacao-conteudo { padding: 0.25rem 1.25rem 1.5rem; }
+
+    /* Etiquetas nos cartões (suporte, entrou, saiu) */
+    .jg-tag {
+      display: inline-block;
+      margin-top: 0.35rem;
+      padding: 0.1rem 0.55rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1.4;
+      border-radius: 999px;
+      border: 1px solid var(--borda);
+      color: var(--suave);
+    }
+    .jg-tag.entrou { color: #5fd38d; border-color: rgba(95, 211, 141, 0.5); }
+    .jg-tag.saiu { color: #ee7d7d; border-color: rgba(238, 125, 125, 0.5); }
+    .jg-tag.suporte { color: var(--roxo-claro); border-color: rgba(181, 122, 212, 0.5); }
+
+    /* Lista de substituições */
+    .jg-subs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+    .jg-subs li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem 0.75rem;
+      padding: 0.6rem 0.85rem;
+      background: var(--superficie-2);
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      font-size: 0.92rem;
+    }
+    .jg-subs .num { color: var(--suave); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .jg-subs .minuto {
+      min-width: 2.6rem;
+      padding: 0.1rem 0.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--roxo-claro);
+      border: 1px solid rgba(181, 122, 212, 0.5);
+      border-radius: 999px;
+    }
+    .jg-subs .entrou { color: #5fd38d; font-weight: 600; }
+    .jg-subs .saiu { color: #ee7d7d; font-weight: 600; }
+
     @media (max-width: 560px) {
       .jg-placar { grid-template-columns: 1fr; gap: 0.5rem; }
     }
@@ -101,6 +180,8 @@
     .carrossel-wrapper {
       position: relative;
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       background: var(--fundo);
       border-radius: 14px;
       border: 1px solid var(--borda);
@@ -108,6 +189,8 @@
     }
     .carrossel-slides {
       display: flex;
+      width: 100%;
+      min-width: 0;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
@@ -117,13 +200,17 @@
     .carrossel-slides::-webkit-scrollbar { display: none; }
     .carrossel-slide {
       position: relative;
-      min-width: 100%;
-      height: 480px;
+      /* largura fixa em 100% do carrossel: uma foto grande nunca alarga o slide */
+      flex: 0 0 100%;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      height: clamp(280px, 70vh, 520px);
       display: flex;
       align-items: center;
       justify-content: center;
       scroll-snap-align: center;
-      flex-shrink: 0;
+      scroll-snap-stop: always;
       overflow: hidden;
       background: radial-gradient(circle, rgba(181, 122, 212, 0.12) 0%, rgba(14, 14, 18, 0.98) 75%);
     }
@@ -141,8 +228,10 @@
     .carrossel-slide img {
       position: relative;
       z-index: 2;
+      display: block;
       max-width: 100%;
       max-height: 100%;
+      min-width: 0;
       width: auto;
       height: auto;
       object-fit: contain;
@@ -198,7 +287,7 @@
     }
 
     @media (max-width: 480px) {
-      .carrossel-slide { height: 340px; }
+      .carrossel-slide { height: clamp(260px, 62vh, 420px); }
       .carrossel-btn { width: 32px; height: 32px; }
     }
   </style>
@@ -273,8 +362,13 @@
 
           <!-- Escalação -->
           <section id="secao-escalacao" class="jg-bloco" hidden>
-            <h2>Escalação</h2>
-            <div id="escalacao-conteudo"></div>
+            <details class="jg-detalhes">
+              <summary>
+                <h2>Escalação</h2>
+                <span id="escalacao-resumo" class="jg-resumo"></span>
+              </summary>
+              <div id="escalacao-conteudo"></div>
+            </details>
           </section>
 
           <!-- Fotos do jogo -->
@@ -376,55 +470,127 @@
       }
 
       // ---------- Escalação ----------
-      function cartaoJogador(slug, p) {
+      // O jogos.json (gerado por atualizar_jogos.py) traz cada pessoa como objeto:
+      // { nome, numero, posicao, grupo, slug, suporte, entrou_por, saiu_para, minuto }
+      // Jogador do elenco: slug aponta para o perfil. Suporte: sem perfil, sem camisa (slug nulo).
+      function etiqueta(texto, classe) {
+        var s = document.createElement('span');
+        s.className = 'jg-tag ' + classe;
+        s.textContent = texto;
+        return s;
+      }
+
+      function cartaoPessoa(e, jogadores) {
+        var perfil = (!e.suporte && e.slug && jogadores[e.slug]) ? jogadores[e.slug] : null;
+
         var li = document.createElement('li');
         li.className = 'atleta';
 
-        var a = document.createElement('a');
-        a.className = 'atleta-link';
-        a.href = 'jogador.html?id=' + encodeURIComponent(slug);
+        var card;
+        if (perfil) {
+          card = document.createElement('a');
+          card.className = 'atleta-link';
+          card.href = 'jogador.html?id=' + encodeURIComponent(e.slug);
+        } else {
+          card = document.createElement('div');
+          card.className = 'atleta-link';
+        }
 
         var img = document.createElement('img');
-        img.src = 'imagens/jogadores/' + encodeURIComponent(p.foto);
-        img.alt = 'Foto de ' + p.nome;
+        img.alt = perfil ? 'Foto de ' + e.nome : '';
         img.loading = 'lazy';
         img.onerror = function () { this.onerror = null; this.src = 'imagens/placeholder.svg'; };
-        a.appendChild(img);
+        img.src = perfil ? 'imagens/jogadores/' + encodeURIComponent(perfil.foto) : 'imagens/placeholder.svg';
+        card.appendChild(img);
 
-        if (p.numero !== null && p.numero !== undefined) {
+        if (e.numero !== null && e.numero !== undefined) {
           var num = document.createElement('span');
           num.className = 'atleta-numero';
-          num.textContent = p.numero;
-          a.appendChild(num);
+          num.textContent = e.numero;
+          card.appendChild(num);
         }
 
         var nome = document.createElement('p');
         nome.className = 'atleta-nome';
-        nome.textContent = p.nome;
-        a.appendChild(nome);
+        nome.textContent = e.nome;
+        card.appendChild(nome);
 
         var pos = document.createElement('p');
         pos.className = 'atleta-posicao';
-        pos.textContent = p.posicao;
-        a.appendChild(pos);
+        pos.textContent = e.posicao || (e.suporte ? 'Suporte' : '');
+        card.appendChild(pos);
 
-        li.appendChild(a);
+        if (e.suporte) card.appendChild(etiqueta('Suporte', 'suporte'));
+        var quando = e.minuto ? ' aos ' + e.minuto : '';
+        if (e.saiu_para) card.appendChild(etiqueta('Saiu para ' + e.saiu_para + quando, 'saiu'));
+        if (e.entrou_por) card.appendChild(etiqueta('Entrou por ' + e.entrou_por + quando, 'entrou'));
+
+        li.appendChild(card);
         return li;
       }
 
-      function grupoEscalacao(titulo, slugs, jogadores) {
-        var validos = slugs.filter(function (s) { return jogadores[s]; });
-        if (validos.length === 0) return null;
+      // A ordem (goleiro → defesa → meio → ataque, depois camisa) já vem pronta do script.
+      function grupoEscalacao(titulo, lista, jogadores, nota) {
+        if (!lista || !lista.length) return null;
 
         var grupo = document.createElement('div');
         grupo.className = 'grupo-elenco';
         var h = document.createElement('h2');
-        h.textContent = titulo + ' (' + validos.length + ')';
+        h.textContent = titulo + ' (' + lista.length + ')';
         grupo.appendChild(h);
+
+        if (nota) {
+          var p = document.createElement('p');
+          p.className = 'jg-nota';
+          p.textContent = nota;
+          grupo.appendChild(p);
+        }
 
         var ul = document.createElement('ul');
         ul.className = 'elenco-grade';
-        validos.forEach(function (s) { ul.appendChild(cartaoJogador(s, jogadores[s])); });
+        lista.forEach(function (e) { ul.appendChild(cartaoPessoa(e, jogadores)); });
+        grupo.appendChild(ul);
+        return grupo;
+      }
+
+      function grupoSubstituicoes(lista) {
+        if (!lista || !lista.length) return null;
+
+        var grupo = document.createElement('div');
+        grupo.className = 'grupo-elenco';
+        var h = document.createElement('h2');
+        h.textContent = 'Substituições (' + lista.length + ')';
+        grupo.appendChild(h);
+
+        var ul = document.createElement('ul');
+        ul.className = 'jg-subs';
+        lista.forEach(function (s, i) {
+          var li = document.createElement('li');
+
+          var n = document.createElement('span');
+          n.className = 'num';
+          n.textContent = (i + 1) + 'ª';
+          li.appendChild(n);
+
+          if (s.minuto) {
+            var min = document.createElement('span');
+            min.className = 'minuto';
+            min.textContent = s.minuto;
+            li.appendChild(min);
+          }
+
+          var entrou = document.createElement('span');
+          entrou.className = 'entrou';
+          entrou.textContent = '▲ ' + s.entrou;
+          li.appendChild(entrou);
+
+          var saiu = document.createElement('span');
+          saiu.className = 'saiu';
+          saiu.textContent = '▼ ' + s.saiu;
+          li.appendChild(saiu);
+
+          ul.appendChild(li);
+        });
         grupo.appendChild(ul);
         return grupo;
       }
@@ -433,13 +599,27 @@
         var alvo = $('escalacao-conteudo');
         alvo.innerHTML = '';
 
-        var titulares = grupoEscalacao('Titulares', jogo.escalacao || [], jogadores);
-        var reservas = grupoEscalacao('Reservas', jogo.reservas || [], jogadores);
+        var titulares = jogo.titulares || [];
+        var reservas = jogo.reservas || [];
+        var subs = jogo.substituicoes || [];
 
-        if (titulares) alvo.appendChild(titulares);
-        if (reservas) alvo.appendChild(reservas);
+        var gTitulares = grupoEscalacao('Escalação inicial', titulares, jogadores);
+        var gSubs = grupoSubstituicoes(subs);
+        var gReservas = grupoEscalacao('Reservas', reservas, jogadores);
 
-        if (!titulares && !reservas) {
+        if (gTitulares) alvo.appendChild(gTitulares);
+        if (gSubs) alvo.appendChild(gSubs);
+        if (gReservas) alvo.appendChild(gReservas);
+
+        var nSuporte = titulares.concat(reservas).filter(function (e) { return e.suporte; }).length;
+        var partes = [];
+        if (titulares.length) partes.push(titulares.length + ' na escalação inicial');
+        if (reservas.length) partes.push(reservas.length + ' reservas');
+        if (subs.length) partes.push(subs.length + (subs.length === 1 ? ' substituição' : ' substituições'));
+        if (nSuporte) partes.push(nSuporte + ' de suporte');
+        $('escalacao-resumo').textContent = partes.length ? partes.join(' · ') : 'ainda não divulgada';
+
+        if (!gTitulares && !gReservas) {
           var vazio = document.createElement('p');
           vazio.className = 'vazio';
           vazio.textContent = 'Escalação ainda não divulgada.';

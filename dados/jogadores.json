@@ -237,6 +237,22 @@
     "gols": 1,
     "assistencias": 0
   },
+  "ivan": {
+    "nome": "Ivan",
+    "numero": 21,
+    "posicao": "Meio-campo",
+    "grupo": "meio",
+    "foto": "ivan.jpeg",
+    "formacao": "",
+    "idade": "",
+    "pe": "",
+    "altura": "",
+    "titulos": "",
+    "fotos_jogo": [],
+    "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
   "lucca": {
     "nome": "Lucca",
     "numero": 22,
@@ -282,6 +298,22 @@
     "titulos": "",
     "fotos_jogo": [],
     "jogos": 4,
+    "gols": 0,
+    "assistencias": 0
+  },
+  "derick": {
+    "nome": "Derick",
+    "numero": 96,
+    "posicao": "Meio-campo",
+    "grupo": "meio",
+    "foto": "derick.jpeg",
+    "formacao": "",
+    "idade": "",
+    "pe": "",
+    "altura": "",
+    "titulos": "",
+    "fotos_jogo": [],
+    "jogos": 3,
     "gols": 0,
     "assistencias": 0
   },

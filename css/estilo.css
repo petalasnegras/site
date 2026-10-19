@@ -807,3 +807,14 @@ h2 {
 
 a.jogo-confronto { text-decoration: none; }
 a.jogo-confronto:hover { color: var(--roxo-claro); }
+
+/* JOGO-LINK:INICIO */
+/* Cartão de jogo inteiro clicável (acrescentado por atualizar_jogos.py) */
+a.jogo {
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+a.jogo:hover { border-color: rgba(181, 122, 212, 0.55); transform: translateY(-1px); }
+a.jogo:focus-visible { border-radius: 12px; }
+/* JOGO-LINK:FIM */

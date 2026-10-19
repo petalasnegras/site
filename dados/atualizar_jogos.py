@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Gerencia os jogos do site (calendário, placar, escalação e fotos) a partir do jogos.csv.
+Gerencia os jogos do site (calendário, placar, escalação, substituições e fotos) a partir do jogos.csv.
 
 O jogos.csv é o "banco de dados" dos jogos. Este script lê o csv e reescreve:
   - a lista de jogos em ../jogos.html
@@ -14,16 +14,31 @@ Este script e os arquivos .csv ficam na pasta dados/. Pode rodar de qualquer lug
   python dados/atualizar_jogos.py --novo            cadastra um jogo
   python dados/atualizar_jogos.py --editar          edita qualquer dado de um jogo já cadastrado
   python dados/atualizar_jogos.py --placar          lança o placar de um jogo rapidamente
-  python dados/atualizar_jogos.py --escalacao       define titulares e reservas de um jogo
+  python dados/atualizar_jogos.py --escalacao       define titulares, reservas e substituições de um jogo
   python dados/atualizar_jogos.py --fotos           lê as pastas imagens/jogos/<id>/ e preenche a coluna fotos
   python dados/atualizar_jogos.py --remover         remove um jogo
 
 Colunas do jogos.csv (separador ; ou ,):
   data (DD/MM/AAAA), hora (HH:MM), adversario, local, placar (ex.: 2 x 1),
-  escalacao (titulares), reservas, fotos (arquivos da pasta imagens/jogos/<id>/)
+  escalacao (titulares), reservas, substituicoes, fotos (arquivos da pasta imagens/jogos/<id>/)
 
-Na escalacao e nas reservas, escreva os jogadores separados por vírgula, pelo nome ou pelo
-número da camisa (como estão no elenco.csv). Ex.: Henrico, 2, Heitor, Rulim
+TITULARES E RESERVAS
+  Escreva os jogadores separados por vírgula, pelo nome ou pelo número da camisa (como estão no
+  elenco.csv). Ex.: Henrico, 2, Heitor, Rulim
+
+SUPORTE
+  Suporte é quem entrou para completar o time mas não está no elenco. Ele fica dentro dos titulares
+  ou das reservas, marcado com (suporte), e pode ter a posição depois da vírgula:
+      Fulano (suporte), Ciclano (suporte, Goleiro)
+  Se você digitar um nome que não está no elenco, o script pergunta se quer adicioná-lo como suporte.
+
+SUBSTITUIÇÕES
+  Quem entrou do banco e quem saiu, na ordem em que aconteceram: Quem entrou > Quem saiu
+  Ex.: Rulim > Jonas, Paiva > Heitor      (quem entrou precisa estar nas reservas)
+
+  O minuto do jogo é opcional e vai no fim, com apóstrofo (ou entre parênteses):
+      Rulim > Jonas 80', Paiva > Heitor (45+2')
+  Sem o apóstrofo, o número é lido como camisa (ex.: Rulim > 2 é o Jonas).
 
 Um jogo aparece como "Próximo" até o dia dele passar; depois vira "Realizado" sozinho.
 O endereço da página de cada jogo é jogo.html?id=AAAA-MM-DD-adversario.
@@ -55,10 +70,31 @@ PASTA_FOTOS_JOGOS = RAIZ / "imagens" / "jogos"
 EXTENSOES_IMAGEM = {".jpeg", ".jpg", ".png", ".webp"}
 
 NOSSO_TIME = "Pétalas Negras"
-COLUNAS = ["data", "hora", "adversario", "local", "placar", "escalacao", "reservas", "fotos"]
+COLUNAS = ["data", "hora", "adversario", "local", "placar", "escalacao", "reservas", "substituicoes", "fotos"]
 COLUNAS_OBRIGATORIAS = COLUNAS[:4]
 DIAS_SEMANA = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+
+# Mesmas posições do atualizar_elenco.py (palavras sem acento). A ordem da lista é a ordem na escalação.
+GRUPOS = [
+    ("goleiro", ["goleiro", "goleira"]),
+    ("zagueiro", ["zagueiro", "zagueira", "defensor", "libero"]),
+    ("lateral", ["lateral"]),
+    ("meio", ["volante", "meio", "meia", "armador"]),
+    ("ataque", ["ataque", "atacante", "centroavante", "ponta", "pivo"]),
+    ("tecnico", ["tecnico", "treinador", "comissao", "preparador", "auxiliar", "fotografo", "fotografa"]),
+]
+ORDEM_GRUPOS = [g for g, _ in GRUPOS]
+
+PADRAO_SUPORTE = re.compile(r"(.+?)\s*\(\s*suporte\s*(?:[,;:\-]\s*(.*?))?\s*\)", re.IGNORECASE)
+PADRAO_SUBSTITUICAO = re.compile(r"(.+?)\s*(?:>|→|\bpor\b)\s*(.+)", re.IGNORECASE)
+
+# Minuto no fim da substituição: "80'", "45+2'" ou entre parênteses "(80')" / "(80)".
+# Sem apóstrofo e sem parênteses o número é camisa, não minuto.
+_MIN = r"(\d{1,3}(?:\s*\+\s*\d{1,2})?)"
+PADRAO_MINUTO = re.compile(
+    rf"^(?P<resto>.*?)(?:\s*\(\s*{_MIN}\s*['′’]?\s*\)|\s+{_MIN}\s*['′’])\s*$"
+)
 
 
 def erro(mensagem):
@@ -86,13 +122,40 @@ def ordem_natural(texto):
     return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", texto)]
 
 
+def descobrir_grupo(texto):
+    normal = sem_acento(texto or "")
+    if not normal:
+        return ""
+    for id_grupo, palavras in GRUPOS:
+        if any(p in normal for p in palavras):
+            return id_grupo
+    return ""
+
+
+def separar_lista(texto):
+    """Separa por vírgula (ou |), sem quebrar o que está entre parênteses: 'A (suporte, Goleiro), B'."""
+    itens, atual, nivel = [], [], 0
+    for c in texto or "":
+        if c == "(":
+            nivel += 1
+        elif c == ")":
+            nivel = max(0, nivel - 1)
+        if c in ",|" and nivel == 0:
+            itens.append("".join(atual))
+            atual = []
+        else:
+            atual.append(c)
+    itens.append("".join(atual))
+    return [i.strip() for i in itens if i.strip()]
+
+
 # ---------------------------------------------------------------- elenco (para resolver a escalação)
 
 _elenco_cache = None
 
 
 def elenco():
-    """Lê nome/camisa do elenco.csv. Só leitura: quem cuida desse arquivo é o atualizar_elenco.py."""
+    """Lê nome, camisa e posição do elenco.csv. Só leitura: quem cuida desse arquivo é o atualizar_elenco.py."""
     global _elenco_cache
     if _elenco_cache is not None:
         return _elenco_cache
@@ -105,13 +168,18 @@ def elenco():
             linha = {sem_acento((k or "").strip()): (v or "").strip() for k, v in bruto.items()}
             if linha.get("nome"):
                 pessoas.append({"nome": linha["nome"], "numero": linha.get("numero", ""),
-                                "slug": slug_jogador(linha["nome"])})
+                                "posicao": linha.get("posicao", ""), "slug": slug_jogador(linha["nome"])})
     _elenco_cache = pessoas
     return pessoas
 
 
+def no_elenco_exato(nome):
+    alvo = sem_acento(nome).strip()
+    return any(sem_acento(p["nome"]) == alvo for p in elenco())
+
+
 def resolver_jogador(texto):
-    """Acha um jogador pelo número da camisa ou pelo nome. Devolve (pessoa, None) ou (None, motivo)."""
+    """Acha um jogador do elenco pela camisa ou pelo nome. Devolve (pessoa, None) ou (None, motivo)."""
     pessoas = elenco()
     if not pessoas:
         return None, "não encontrei o elenco.csv para conferir os nomes"
@@ -130,8 +198,139 @@ def resolver_jogador(texto):
     return achados[0], None
 
 
-def separar_lista(texto):
-    return [p.strip() for p in re.split(r"[,|]", texto) if p.strip()]
+# ---------------------------------------------------------------- escalação (titulares, reservas, suporte, substituições)
+
+def formatar_suporte(nome, posicao=""):
+    return f"{nome} (suporte, {posicao})" if posicao else f"{nome} (suporte)"
+
+
+def interpretar_suporte(texto):
+    """'Fulano (suporte, Goleiro)' -> ('Fulano', 'Goleiro'). Devolve None se não for suporte."""
+    m = PADRAO_SUPORTE.fullmatch(texto.strip())
+    return (m.group(1).strip(), (m.group(2) or "").strip()) if m else None
+
+
+def separar_minuto(texto):
+    """'Rulim > Jonas 80\\'' -> ('Rulim > Jonas', \"80'\"). Sem minuto devolve (texto, '')."""
+    m = PADRAO_MINUTO.match(texto.strip())
+    if not m:
+        return texto.strip(), ""
+    numero = m.group(2) or m.group(3)
+    return m.group("resto").strip(), formatar_minuto(numero)
+
+
+def formatar_minuto(numero):
+    """'80' -> \"80'\"; '45 + 2' -> \"45+2'\"."""
+    return re.sub(r"\s+", "", numero) + "'"
+
+
+def nova_entrada(nome, numero, posicao, slug, suporte):
+    return {"nome": nome, "numero": numero, "posicao": posicao, "grupo": descobrir_grupo(posicao),
+            "slug": slug, "suporte": suporte, "entrou_por": None, "saiu_para": None, "minuto": None}
+
+
+def resolver_entrada(texto):
+    """Transforma o texto do csv numa pessoa da escalação. Devolve (entrada, None) ou (None, motivo)."""
+    suporte = interpretar_suporte(texto)
+    if suporte:
+        return nova_entrada(suporte[0], None, suporte[1], None, True), None
+    pessoa, motivo = resolver_jogador(texto)
+    if pessoa is None:
+        return None, motivo
+    numero = int(pessoa["numero"]) if pessoa["numero"].isdigit() else None
+    return nova_entrada(pessoa["nome"], numero, pessoa["posicao"], pessoa["slug"], False), None
+
+
+def chave_entrada(e):
+    return e["slug"] or "suporte:" + sem_acento(e["nome"]).strip()
+
+
+def ordenar_entradas(entradas):
+    """Por posição (goleiro, zagueiro, lateral, meio, ataque); dentro da posição, por camisa e nome."""
+    def chave(e):
+        grupo = ORDEM_GRUPOS.index(e["grupo"]) if e["grupo"] in ORDEM_GRUPOS else len(ORDEM_GRUPOS)
+        return (grupo, e["numero"] if e["numero"] is not None else 9999, sem_acento(e["nome"]))
+    return sorted(entradas, key=chave)
+
+
+def resolver_lista(textos):
+    entradas, problemas, vistos = [], [], set()
+    for texto in textos:
+        entrada, motivo = resolver_entrada(texto)
+        if entrada is None:
+            problemas.append(motivo)
+        elif chave_entrada(entrada) not in vistos:
+            vistos.add(chave_entrada(entrada))
+            entradas.append(entrada)
+    return ordenar_entradas(entradas), problemas
+
+
+def achar_na_lista(texto, entradas):
+    """Procura uma pessoa dentro de uma lista de entradas, por camisa ou nome."""
+    t = sem_acento(texto).strip()
+    if t.isdigit():
+        achados = [e for e in entradas if e["numero"] is not None and e["numero"] == int(t)]
+    else:
+        achados = [e for e in entradas if sem_acento(e["nome"]) == t]
+        if not achados:
+            achados = [e for e in entradas if t and t in sem_acento(e["nome"])]
+    if len(achados) == 1:
+        return achados[0], None
+    if not achados:
+        return None, "não encontrei na escalação deste jogo"
+    return None, "bate com mais de um nome (" + ", ".join(e["nome"] for e in achados) + ")"
+
+
+def resolver_substituicoes(textos, titulares, reservas):
+    """
+    Cada substituição é 'Quem entrou > Quem saiu', na ordem em que aconteceram, com minuto opcional
+    no fim ('Rulim > Jonas 80\\''). Quem entrou precisa estar no banco; quem saiu precisa estar em campo
+    (titular ou reserva que já entrou). Preenche entrou_por / saiu_para / minuto nas entradas.
+    Devolve (pares, problemas); cada par é {"entrou", "saiu", "minuto"}.
+    """
+    pares, problemas = [], []
+    em_campo = list(titulares)
+    banco = list(reservas)
+    for texto in textos:
+        corpo, minuto = separar_minuto(texto)
+        m = PADRAO_SUBSTITUICAO.fullmatch(corpo)
+        if not m:
+            problemas.append(f"substituição '{texto}': use o formato 'Quem entrou > Quem saiu' (minuto opcional: 80')")
+            continue
+        entrou, motivo = achar_na_lista(m.group(1), banco)
+        if entrou is None:
+            problemas.append(f"substituição '{texto}': quem entrou ({m.group(1).strip()}) precisa estar nas reservas e ainda no banco; {motivo}")
+            continue
+        saiu, motivo = achar_na_lista(m.group(2), em_campo)
+        if saiu is None:
+            problemas.append(f"substituição '{texto}': quem saiu ({m.group(2).strip()}) precisa estar em campo; {motivo}")
+            continue
+        banco.remove(entrou)
+        em_campo.remove(saiu)
+        em_campo.append(entrou)
+        saiu["saiu_para"] = entrou["nome"]
+        entrou["entrou_por"] = saiu["nome"]
+        if minuto:
+            saiu["minuto"] = minuto
+            entrou["minuto"] = minuto
+        pares.append({"entrou": entrou["nome"], "saiu": saiu["nome"], "minuto": minuto})
+    return pares, problemas
+
+
+def texto_substituicao(par):
+    """Volta o par ao formato do csv: 'Rulim > Jonas 80\\''."""
+    base = f"{par['entrou']} > {par['saiu']}"
+    return f"{base} {par['minuto']}" if par.get("minuto") else base
+
+
+def montar_escalacao(jogo):
+    """Devolve (titulares, reservas, substituicoes, problemas) já resolvidos e ordenados."""
+    titulares, p1 = resolver_lista(jogo["escalacao"])
+    reservas, p2 = resolver_lista(jogo["reservas"])
+    nos_titulares = {chave_entrada(e) for e in titulares}
+    reservas = [e for e in reservas if chave_entrada(e) not in nos_titulares]
+    pares, p3 = resolver_substituicoes(jogo["substituicoes"], titulares, reservas)
+    return titulares, reservas, pares, p1 + p2 + p3
 
 
 # ---------------------------------------------------------------- leitura
@@ -156,6 +355,29 @@ def interpretar_placar(texto):
     return (int(m.group(1)), int(m.group(2))) if m else None
 
 
+def migrar_suporte_antigo(colunas, linhas):
+    """A coluna 'suporte' (versão anterior) vira entradas '(suporte)' dentro das reservas."""
+    if "suporte" not in colunas:
+        return
+    colunas.remove("suporte")
+    migrou = False
+    for linha in linhas:
+        itens = separar_lista(linha.get("suporte", ""))
+        linha["suporte"] = ""
+        if not itens:
+            continue
+        novos = []
+        for item in itens:
+            m = re.fullmatch(r"(.+?)\s*\(([^)]*)\)", item)
+            nome, posicao = (m.group(1).strip(), m.group(2).strip()) if m else (item, "")
+            novos.append(formatar_suporte(nome, posicao))
+        linha["reservas"] = ", ".join(separar_lista(linha.get("reservas", "")) + novos)
+        migrou = True
+    if migrou:
+        print("Aviso: a coluna 'suporte' antiga foi movida para as reservas (marcados como suporte). "
+              "Será gravada assim na próxima alteração pelo script.")
+
+
 def carregar_tabela():
     if not ARQUIVO_JOGOS.exists():
         erro(f"não encontrei {ARQUIVO_JOGOS.name} em {PASTA}.")
@@ -178,6 +400,7 @@ def carregar_tabela():
             continue  # linha em branco
         linha["_linha"] = numero
         linhas.append(linha)
+    migrar_suporte_antigo(colunas, linhas)
     return colunas, linhas, separador
 
 
@@ -215,6 +438,7 @@ def montar_jogos(linhas):
             "placar": linha.get("placar", ""),
             "escalacao": separar_lista(linha.get("escalacao", "")),
             "reservas": separar_lista(linha.get("reservas", "")),
+            "substituicoes": separar_lista(linha.get("substituicoes", "")),
             "fotos": [f.strip() for f in linha.get("fotos", "").split(",") if f.strip()],
         })
     return jogos
@@ -249,14 +473,16 @@ def url_jogo(jogo):
 def html_linha_jogo(jogo, proximo):
     d = jogo["data"]
     selo = '<span class="selo selo-proximo">Próximo</span>' if proximo else '<span class="selo">Realizado</span>'
-    local = f'\n              <span class="jogo-detalhe">{esc(jogo["local"])}</span>' if jogo["local"] else ""
-    return f"""          <li class="jogo">
-            <div class="jogo-data"><strong>{d.day:02d}</strong><span>{MESES[d.month - 1]}</span></div>
-            <div>
-              <a class="jogo-confronto" href="{url_jogo(jogo)}">{confronto(jogo)}</a>
-              <span class="jogo-detalhe">{esc(descricao_data(jogo))}</span>{local}
-            </div>
-            {selo}
+    local = f'\n                <span class="jogo-detalhe">{esc(jogo["local"])}</span>' if jogo["local"] else ""
+    return f"""          <li>
+            <a class="jogo" href="{url_jogo(jogo)}">
+              <div class="jogo-data"><strong>{d.day:02d}</strong><span>{MESES[d.month - 1]}</span></div>
+              <div>
+                <span class="jogo-confronto">{confronto(jogo)}</span>
+                <span class="jogo-detalhe">{esc(descricao_data(jogo))}</span>{local}
+              </div>
+              {selo}
+            </a>
           </li>"""
 
 
@@ -303,18 +529,6 @@ def html_destaque(jogos, hoje):
 
 # ---------------------------------------------------------------- JSON (página de cada jogo)
 
-def resolver_lista(nomes):
-    """Transforma nomes/camisas em identificadores de perfil. Devolve (slugs, problemas)."""
-    slugs, problemas = [], []
-    for texto in nomes:
-        pessoa, motivo = resolver_jogador(texto)
-        if pessoa is None:
-            problemas.append(motivo)
-        elif pessoa["slug"] not in slugs:
-            slugs.append(pessoa["slug"])
-    return slugs, problemas
-
-
 def json_jogos(jogos):
     dados = {}
     for jogo in sorted(jogos, key=lambda j: (j["data"], j["hora"]), reverse=True):
@@ -327,8 +541,7 @@ def json_jogos(jogos):
             pro = contra = None
             resultado = ""
             placar_texto = jogo["placar"]
-        titulares, _ = resolver_lista(jogo["escalacao"])
-        reservas, _ = resolver_lista(jogo["reservas"])
+        titulares, reservas, substituicoes, _ = montar_escalacao(jogo)
         dados[jogo["id"]] = {
             "id": jogo["id"],
             "data": jogo["data"].isoformat(),
@@ -341,8 +554,9 @@ def json_jogos(jogos):
             "gols_pro": pro,
             "gols_contra": contra,
             "resultado": resultado,
-            "escalacao": titulares,
-            "reservas": [s for s in reservas if s not in titulares],
+            "titulares": titulares,
+            "reservas": reservas,
+            "substituicoes": substituicoes,
             "fotos": jogo["fotos"],
         }
     return json.dumps(dados, ensure_ascii=False, indent=2)
@@ -373,22 +587,56 @@ def substituir_bloco(arquivo, nome, novo_conteudo):
     return False
 
 
+# ---------------------------------------------------------------- CSS do cartão clicável
+
+PAGINA_CSS = RAIZ / "css" / "estilo.css"
+MARCA_CSS = "/* JOGO-LINK:INICIO */"
+BLOCO_CSS = """
+/* JOGO-LINK:INICIO */
+/* Cartão de jogo inteiro clicável (acrescentado por atualizar_jogos.py) */
+a.jogo {
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+a.jogo:hover { border-color: rgba(181, 122, 212, 0.55); transform: translateY(-1px); }
+a.jogo:focus-visible { border-radius: 12px; }
+/* JOGO-LINK:FIM */
+"""
+
+
+def garantir_css():
+    """Acrescenta ao estilo.css o visual do cartão de jogo clicável, se ainda não estiver lá."""
+    if not PAGINA_CSS.exists():
+        print("Aviso: não encontrei css/estilo.css; o cartão de jogo ficará sem o estilo de link.")
+        return
+    texto = PAGINA_CSS.read_text(encoding="utf-8")
+    if MARCA_CSS in texto:
+        return
+    PAGINA_CSS.write_text(texto.rstrip("\n") + "\n" + BLOCO_CSS, encoding="utf-8")
+    print("  estilo.css: acrescentado o estilo do cartão de jogo clicável")
+
+
 def avisos(jogos):
     for jogo in jogos:
         rotulo = f"{jogo['data'].strftime('%d/%m/%Y')} x {jogo['adversario']}"
         if jogo["placar"] and not interpretar_placar(jogo["placar"]):
             print(f"Aviso: placar '{jogo['placar']}' ({rotulo}) não está no formato '2 x 1'.")
-        for campo, titulo in (("escalacao", "escalação"), ("reservas", "reservas")):
-            _, problemas = resolver_lista(jogo[campo])
-            for p in problemas:
-                print(f"Aviso: {titulo} de {rotulo}: {p}.")
-        titulares, _ = resolver_lista(jogo["escalacao"])
-        reservas, _ = resolver_lista(jogo["reservas"])
-        repetidos = [s for s in reservas if s in titulares]
+
+        for texto in jogo["escalacao"] + jogo["reservas"]:
+            suporte = interpretar_suporte(texto)
+            if suporte and no_elenco_exato(suporte[0]):
+                print(f"Aviso: {rotulo}: {suporte[0]} está no elenco; tire o '(suporte)' dele.")
+
+        titulares, reservas, _, problemas = montar_escalacao(jogo)
+        for p in problemas:
+            print(f"Aviso: escalação de {rotulo}: {p}.")
+        repetidos = [e["nome"] for e in resolver_lista(jogo["reservas"])[0]
+                     if chave_entrada(e) in {chave_entrada(t) for t in titulares}]
         if repetidos:
             print(f"Aviso: {rotulo}: {', '.join(repetidos)} está nos titulares e nas reservas (ficará só nos titulares).")
         if len(titulares) > 11:
-            print(f"Aviso: {rotulo}: {len(titulares)} titulares na escalação.")
+            print(f"Aviso: {rotulo}: {len(titulares)} jogadores nos titulares.")
         for foto in jogo["fotos"]:
             if not (PASTA_FOTOS_JOGOS / jogo["id"] / foto).exists():
                 print(f"Aviso: foto não encontrada em imagens/jogos/{jogo['id']}/{foto} ({rotulo}).")
@@ -404,6 +652,7 @@ def atualizar_paginas(jogos, hoje=None):
     print(f"  {PAGINA_JOGOS.name}: {'atualizado' if mudou_jogos else 'já estava em dia'}")
     print(f"  {PAGINA_INICIO.name}: {'atualizado' if mudou_inicio else 'já estava em dia'}")
     gerar_json_jogos(jogos)
+    garantir_css()
     if not (RAIZ / "jogo.html").exists():
         print("Aviso: não encontrei jogo.html na raiz do site (é a página de cada jogo).")
 
@@ -435,16 +684,46 @@ def v_placar(texto, atual):
     return f"{placar[0]} x {placar[1]}"
 
 
-def v_lista_jogadores(texto, atual):
-    nomes, vistos = [], set()
+def v_lista_jogo(texto, atual):
+    """Titulares ou reservas: confere com o elenco e oferece cadastrar como suporte quem não está nele."""
+    saida, vistos = [], set()
     for item in separar_lista(texto):
-        pessoa, motivo = resolver_jogador(item)
-        if pessoa is None:
-            raise ValueError(motivo[0].upper() + motivo[1:] + ".")
-        if pessoa["slug"] not in vistos:
-            vistos.add(pessoa["slug"])
-            nomes.append(pessoa["nome"])
-    return ", ".join(nomes)
+        suporte = interpretar_suporte(item)
+        if suporte:
+            nome, posicao = suporte
+            if no_elenco_exato(nome):
+                print(f"    Aviso: {nome} já está no elenco; sem o '(suporte)' ele aparece com camisa e perfil.")
+            texto_item = formatar_suporte(nome, posicao)
+        else:
+            pessoa, motivo = resolver_jogador(item)
+            if pessoa is not None:
+                texto_item = pessoa["nome"]
+            elif "mais de um" in motivo:
+                raise ValueError(motivo[0].upper() + motivo[1:] + ".")
+            else:
+                resposta = input(f"    '{item}' não está no elenco. Adicionar como suporte? (s/N): ").strip().lower()
+                if resposta != "s":
+                    raise ValueError("Confira o nome/camisa, ou escreva 'Nome (suporte)' para quem não é do elenco.")
+                posicao = input("    Posição do suporte (opcional, ex.: Goleiro): ").strip()
+                texto_item = formatar_suporte(item, posicao)
+        chave = sem_acento(texto_item)
+        if chave not in vistos:
+            vistos.add(chave)
+            saida.append(texto_item)
+    return ", ".join(saida)
+
+
+def v_substituicoes_factory(linha):
+    def validar(texto, atual):
+        titulares, _ = resolver_lista(separar_lista(linha.get("escalacao", "")))
+        reservas, _ = resolver_lista(separar_lista(linha.get("reservas", "")))
+        nos_titulares = {chave_entrada(e) for e in titulares}
+        reservas = [e for e in reservas if chave_entrada(e) not in nos_titulares]
+        pares, problemas = resolver_substituicoes(separar_lista(texto), titulares, reservas)
+        if problemas:
+            raise ValueError(problemas[0][0].upper() + problemas[0][1:] + ".")
+        return ", ".join(texto_substituicao(p) for p in pares)
+    return validar
 
 
 def perguntar(rotulo, atual=None, validar=None, obrigatorio=False):
@@ -504,15 +783,24 @@ def mostrar_elenco():
 
 def perguntar_escalacao(linha, novo):
     mostrar_elenco()
-    print("  (escreva nomes ou camisas separados por vírgula)")
-    linha["escalacao"] = perguntar("Titulares", None if novo else linha.get("escalacao", ""), v_lista_jogadores)
-    linha["reservas"] = perguntar("Reservas", None if novo else linha.get("reservas", ""), v_lista_jogadores)
-    titulares = {sem_acento(n) for n in separar_lista(linha["escalacao"])}
-    repetidos = [n for n in separar_lista(linha["reservas"]) if sem_acento(n) in titulares]
+    print("  (nomes ou camisas separados por vírgula; quem não é do elenco entra como suporte)")
+    linha["escalacao"] = perguntar("Titulares", None if novo else linha.get("escalacao", ""), v_lista_jogo)
+    linha["reservas"] = perguntar("Reservas", None if novo else linha.get("reservas", ""), v_lista_jogo)
+    if linha["reservas"] or linha.get("substituicoes"):
+        print("  (substituições: 'Quem entrou > Quem saiu', na ordem em que aconteceram, com minuto opcional.")
+        print("   Ex.: Rulim > Jonas 80', Paiva > Heitor 45+2')")
+        linha["substituicoes"] = perguntar("Substituições", None if novo else linha.get("substituicoes", ""),
+                                           v_substituicoes_factory(linha))
+    else:
+        linha["substituicoes"] = ""
+    nos_titulares = {sem_acento(interpretar_suporte(n)[0] if interpretar_suporte(n) else n)
+                     for n in separar_lista(linha["escalacao"])}
+    repetidos = [n for n in separar_lista(linha["reservas"])
+                 if sem_acento(interpretar_suporte(n)[0] if interpretar_suporte(n) else n) in nos_titulares]
     if repetidos:
         print(f"  Aviso: {', '.join(repetidos)} está nos titulares e nas reservas.")
     if len(separar_lista(linha["escalacao"])) > 11:
-        print("  Aviso: mais de 11 titulares.")
+        print("  Aviso: mais de 11 jogadores nos titulares.")
 
 
 def v_fotos_factory(linha):
@@ -562,6 +850,8 @@ def mostrar_lista(ordenadas):
         info = []
         if l.get("escalacao"):
             info.append(f"{len(separar_lista(l['escalacao']))} titulares")
+        if l.get("substituicoes"):
+            info.append(f"{len(separar_lista(l['substituicoes']))} subst.")
         if l.get("fotos"):
             info.append(f"{len([f for f in l['fotos'].split(',') if f.strip()])} fotos")
         extra = f"  [{', '.join(info)}]" if info else ""
@@ -727,7 +1017,7 @@ def principal():
                        help="edita qualquer dado de um jogo (adversário, data ou número da lista opcional)")
     grupo.add_argument("--placar", action="store_true", help="lança o placar de um jogo")
     grupo.add_argument("--escalacao", nargs="?", const="", default=None, metavar="JOGO",
-                       help="define titulares e reservas de um jogo")
+                       help="define titulares, reservas e substituições de um jogo")
     grupo.add_argument("--fotos", action="store_true", help="preenche a coluna fotos lendo as pastas imagens/jogos/<id>/")
     grupo.add_argument("--remover", nargs="?", const="", default=None, metavar="JOGO", help="remove um jogo")
     grupo.add_argument("--listar", action="store_true", help="mostra todos os jogos, sem alterar nada")
