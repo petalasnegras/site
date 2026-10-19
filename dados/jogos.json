@@ -21,7 +21,7 @@
         "suporte": true,
         "entrou_por": null,
         "saiu_para": "Henrico",
-        "minuto": null
+        "minuto": "45'"
       },
       {
         "nome": "Maluli",
@@ -87,7 +87,7 @@
         "suporte": false,
         "entrou_por": null,
         "saiu_para": "Davi",
-        "minuto": null
+        "minuto": "45'"
       },
       {
         "nome": "Pepe",
@@ -97,8 +97,8 @@
         "slug": null,
         "suporte": true,
         "entrou_por": null,
-        "saiu_para": null,
-        "minuto": null
+        "saiu_para": "Juan",
+        "minuto": "78'"
       },
       {
         "nome": "Enzo",
@@ -131,7 +131,7 @@
         "suporte": false,
         "entrou_por": null,
         "saiu_para": "Novaes",
-        "minuto": null
+        "minuto": "45'"
       }
     ],
     "reservas": [
@@ -144,7 +144,7 @@
         "suporte": false,
         "entrou_por": "?",
         "saiu_para": null,
-        "minuto": null
+        "minuto": "45'"
       },
       {
         "nome": "Davi",
@@ -155,7 +155,7 @@
         "suporte": true,
         "entrou_por": "Paiva",
         "saiu_para": null,
-        "minuto": null
+        "minuto": "45'"
       },
       {
         "nome": "Dereviani",
@@ -180,6 +180,17 @@
         "minuto": null
       },
       {
+        "nome": "Juan",
+        "numero": null,
+        "posicao": "Meia-amador",
+        "grupo": "meio",
+        "slug": null,
+        "suporte": true,
+        "entrou_por": "Pepe",
+        "saiu_para": null,
+        "minuto": "78'"
+      },
+      {
         "nome": "Biel",
         "numero": 9,
         "posicao": "Centroavante",
@@ -199,27 +210,132 @@
         "suporte": false,
         "entrou_por": "Lipe",
         "saiu_para": null,
-        "minuto": null
+        "minuto": "45'"
       }
     ],
     "substituicoes": [
       {
         "entrou": "Henrico",
         "saiu": "?",
-        "minuto": ""
+        "minuto": "45'"
       },
       {
         "entrou": "Davi",
         "saiu": "Paiva",
-        "minuto": ""
+        "minuto": "45'"
       },
       {
         "entrou": "Novaes",
         "saiu": "Lipe",
-        "minuto": ""
+        "minuto": "45'"
+      },
+      {
+        "entrou": "Juan",
+        "saiu": "Pepe",
+        "minuto": "78'"
       }
     ],
-    "fotos": []
+    "gols": [
+      {
+        "time": "nosso",
+        "minuto": "6'",
+        "autor": {
+          "nome": "Lipe",
+          "numero": 19,
+          "posicao": "Centroavante",
+          "slug": "lipe",
+          "suporte": false
+        },
+        "assistencia": {
+          "nome": "Zampronio",
+          "numero": 14,
+          "posicao": "Lateral esquerdo",
+          "slug": "zampronio",
+          "suporte": false
+        },
+        "parcial": "1 x 0"
+      },
+      {
+        "time": "adversario",
+        "minuto": "",
+        "autor": null,
+        "assistencia": null,
+        "parcial": "1 x 1"
+      },
+      {
+        "time": "adversario",
+        "minuto": "",
+        "autor": null,
+        "assistencia": null,
+        "parcial": "1 x 2"
+      },
+      {
+        "time": "adversario",
+        "minuto": "",
+        "autor": null,
+        "assistencia": null,
+        "parcial": "1 x 3"
+      },
+      {
+        "time": "adversario",
+        "minuto": "",
+        "autor": null,
+        "assistencia": null,
+        "parcial": "1 x 4"
+      },
+      {
+        "time": "nosso",
+        "minuto": "",
+        "autor": {
+          "nome": "Rulim",
+          "numero": 10,
+          "posicao": "Ponta",
+          "slug": "rulim",
+          "suporte": false
+        },
+        "assistencia": {
+          "nome": "João Vitor",
+          "numero": 6,
+          "posicao": "Volante",
+          "slug": "joao-vitor",
+          "suporte": false
+        },
+        "parcial": "2 x 4"
+      },
+      {
+        "time": "nosso",
+        "minuto": "78'",
+        "autor": {
+          "nome": "Novaes",
+          "numero": 11,
+          "posicao": "Centroavante",
+          "slug": "novaes",
+          "suporte": false
+        },
+        "assistencia": {
+          "nome": "Juan",
+          "numero": null,
+          "posicao": "Meia-amador",
+          "slug": null,
+          "suporte": true
+        },
+        "parcial": "3 x 4"
+      }
+    ],
+    "gols_conferem": true,
+    "fotos": [
+      "1.jpeg",
+      "2.jpeg",
+      "3.jpeg",
+      "4.jpeg",
+      "5.jpeg",
+      "7.jpeg",
+      "8.jpeg",
+      "9.jpeg",
+      "10.jpeg",
+      "11.jpeg",
+      "12.jpeg"
+    ]
   },
   "2026-10-10-uniao-balance": {
     "id": "2026-10-10-uniao-balance",
@@ -392,6 +508,8 @@
         "minuto": ""
       }
     ],
+    "gols": [],
+    "gols_conferem": null,
     "fotos": []
   },
   "2026-09-12-flor-da-palmeira-fc": {
@@ -587,6 +705,8 @@
         "minuto": "45'"
       }
     ],
+    "gols": [],
+    "gols_conferem": null,
     "fotos": []
   },
   "2026-08-08-roma-fc": {
@@ -777,6 +897,8 @@
         "minuto": ""
       }
     ],
+    "gols": [],
+    "gols_conferem": null,
     "fotos": [
       "1.jpeg",
       "2.jpeg",

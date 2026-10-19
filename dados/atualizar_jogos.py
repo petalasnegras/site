@@ -15,12 +15,13 @@ Este script e os arquivos .csv ficam na pasta dados/. Pode rodar de qualquer lug
   python dados/atualizar_jogos.py --editar          edita qualquer dado de um jogo já cadastrado
   python dados/atualizar_jogos.py --placar          lança o placar de um jogo rapidamente
   python dados/atualizar_jogos.py --escalacao       define titulares, reservas e substituições de um jogo
+  python dados/atualizar_jogos.py --gols            lança os gols de um jogo (quem fez, assistência e minuto)
   python dados/atualizar_jogos.py --fotos           lê as pastas imagens/jogos/<id>/ e preenche a coluna fotos
   python dados/atualizar_jogos.py --remover         remove um jogo
 
 Colunas do jogos.csv (separador ; ou ,):
   data (DD/MM/AAAA), hora (HH:MM), adversario, local, placar (ex.: 2 x 1),
-  escalacao (titulares), reservas, substituicoes, fotos (arquivos da pasta imagens/jogos/<id>/)
+  escalacao (titulares), reservas, substituicoes, gols, fotos (arquivos da pasta imagens/jogos/<id>/)
 
 TITULARES E RESERVAS
   Escreva os jogadores separados por vírgula, pelo nome ou pelo número da camisa (como estão no
@@ -39,6 +40,17 @@ SUBSTITUIÇÕES
   O minuto do jogo é opcional e vai no fim, com apóstrofo (ou entre parênteses):
       Rulim > Jonas 80', Paiva > Heitor (45+2')
   Sem o apóstrofo, o número é lido como camisa (ex.: Rulim > 2 é o Jonas).
+
+GOLS
+  Cada gol: Quem fez, minuto com apóstrofo e, se teve, a assistência entre parênteses.
+      Rulim 23' (ast. Paiva), Novaes 40', Lipe 67' (Rulim)
+  - O minuto e a assistência são opcionais; "ast." antes do nome da assistência também é opcional.
+  - Gol do adversário: escreva adv no lugar do nome (ex.: adv 55'). Não tem autor nem assistência.
+  - Quem não é do elenco entra como suporte: Fulano (suporte) 30' (ast. Rulim)
+  - Se todos os gols tiverem minuto, eles são mostrados em ordem de minuto. Se algum não tiver, vale a
+    ordem em que você escreveu (então escreva na ordem em que aconteceram).
+  - O placar parcial de cada gol só aparece se os gols baterem com o placar final.
+  - O script avisa se a quantidade de gols não bater com o placar.
 
 Um jogo aparece como "Próximo" até o dia dele passar; depois vira "Realizado" sozinho.
 O endereço da página de cada jogo é jogo.html?id=AAAA-MM-DD-adversario.
@@ -70,7 +82,7 @@ PASTA_FOTOS_JOGOS = RAIZ / "imagens" / "jogos"
 EXTENSOES_IMAGEM = {".jpeg", ".jpg", ".png", ".webp"}
 
 NOSSO_TIME = "Pétalas Negras"
-COLUNAS = ["data", "hora", "adversario", "local", "placar", "escalacao", "reservas", "substituicoes", "fotos"]
+COLUNAS = ["data", "hora", "adversario", "local", "placar", "escalacao", "reservas", "substituicoes", "fotos", "gols"]
 COLUNAS_OBRIGATORIAS = COLUNAS[:4]
 DIAS_SEMANA = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
@@ -333,6 +345,120 @@ def montar_escalacao(jogo):
     return titulares, reservas, pares, p1 + p2 + p3
 
 
+# ---------------------------------------------------------------- gols
+
+# Gol: "Quem fez 23' (ast. Quem passou)". Minuto e assistência são opcionais.
+PADRAO_MINUTO_GOL = re.compile(r"^(?P<resto>.*?)\s+(?P<min>\d{1,3}(?:\s*\+\s*\d{1,2})?)\s*['′’]\s*$")
+PADRAO_PREFIXO_ASSIST = re.compile(r"^(?:ast|assist(?:[eê]ncia)?)(?:\.\s*|:\s*|\s+)", re.IGNORECASE)
+NOMES_ADVERSARIO = {"adv", "adversario", "contra"}
+
+
+def parenteses_final(texto):
+    # Separa o grupo entre parênteses no fim do texto (aceita parênteses aninhados).
+    t = texto.strip()
+    if not t.endswith(")"):
+        return t, ""
+    nivel = 0
+    for i in range(len(t) - 1, -1, -1):
+        if t[i] == ")":
+            nivel += 1
+        elif t[i] == "(":
+            nivel -= 1
+            if nivel == 0:
+                return t[:i].strip(), t[i + 1:-1].strip()
+    return t, ""
+
+
+def interpretar_gol(texto):
+    # Devolve {"autor", "assistencia", "minuto"} em texto cru (ainda não conferido com o elenco).
+    t = texto.strip()
+    resto, dentro = parenteses_final(t)
+    if dentro and sem_acento(dentro).startswith("suporte"):
+        resto, dentro = t, ""  # o parêntese é do (suporte) do autor, não uma assistência
+    assistencia = PADRAO_PREFIXO_ASSIST.sub("", dentro).strip()
+    m = PADRAO_MINUTO_GOL.match(resto)
+    if m:
+        autor, minuto = m.group("resto").strip(), formatar_minuto(m.group("min"))
+    else:
+        autor, minuto = resto.strip(), ""
+    return {"autor": autor, "assistencia": assistencia, "minuto": minuto}
+
+
+def ordem_minuto(minuto):
+    m = re.fullmatch(r"(\d+)(?:\+(\d+))?['′’]", minuto or "")
+    return int(m.group(1)) + int(m.group(2) or 0) / 100 if m else None
+
+
+def pessoa_do_gol(texto):
+    # Autor ou assistência: jogador do elenco (nome ou camisa) ou suporte. Devolve (pessoa, None) ou (None, motivo).
+    suporte = interpretar_suporte(texto)
+    if suporte:
+        return {"nome": suporte[0], "numero": None, "posicao": suporte[1], "slug": None, "suporte": True}, None
+    pessoa, motivo = resolver_jogador(texto)
+    if pessoa is None:
+        return None, motivo
+    numero = int(pessoa["numero"]) if pessoa["numero"].isdigit() else None
+    return {"nome": pessoa["nome"], "numero": numero, "posicao": pessoa["posicao"],
+            "slug": pessoa["slug"], "suporte": False}, None
+
+
+def eh_gol_do_adversario(autor, adversario):
+    return sem_acento(autor).strip() in (NOMES_ADVERSARIO | {sem_acento(adversario).strip()})
+
+
+def resolver_gols(textos, adversario):
+    # Devolve (gols, problemas). Cada gol: time ("nosso" ou "adversario"), minuto, autor, assistencia e
+    # parcial (placar depois do gol, nosso x deles). Os gols saem em ordem de minuto.
+    gols, problemas = [], []
+    for texto in textos:
+        d = interpretar_gol(texto)
+        if eh_gol_do_adversario(d["autor"], adversario):
+            gols.append({"time": "adversario", "minuto": d["minuto"], "autor": None, "assistencia": None})
+            continue
+        autor, motivo = pessoa_do_gol(d["autor"])
+        if autor is None:
+            problemas.append(f"gol '{texto}': autor: {motivo}")
+            continue
+        assistencia = None
+        if d["assistencia"]:
+            assistencia, motivo = pessoa_do_gol(d["assistencia"])
+            if assistencia is None:
+                problemas.append(f"gol '{texto}': assistência: {motivo}")
+                continue
+            if chave_entrada(assistencia) == chave_entrada(autor):
+                problemas.append(f"gol '{texto}': quem fez o gol não pode ser o autor da assistência")
+                assistencia = None
+        gols.append({"time": "nosso", "minuto": d["minuto"], "autor": autor, "assistencia": assistencia})
+    # Só reordena por minuto quando TODOS os gols têm minuto; se algum não tiver, vale a ordem escrita.
+    if gols and all(ordem_minuto(g["minuto"]) is not None for g in gols):
+        gols.sort(key=lambda g: ordem_minuto(g["minuto"]))
+    nosso = deles = 0
+    for g in gols:
+        if g["time"] == "nosso":
+            nosso += 1
+        else:
+            deles += 1
+        g["parcial"] = f"{nosso} x {deles}"
+    return gols, problemas
+
+
+def contar_gols(gols):
+    return (sum(1 for g in gols if g["time"] == "nosso"), sum(1 for g in gols if g["time"] == "adversario"))
+
+
+def texto_pessoa_gol(p):
+    return formatar_suporte(p["nome"], p["posicao"]) if p["suporte"] else p["nome"]
+
+
+def texto_gol(gol):
+    # Volta o gol ao formato do csv: "Rulim 23' (ast. Paiva)".
+    autor = "adv" if gol["time"] == "adversario" else texto_pessoa_gol(gol["autor"])
+    texto = f"{autor} {gol['minuto']}" if gol["minuto"] else autor
+    if gol["assistencia"]:
+        texto += f" (ast. {texto_pessoa_gol(gol['assistencia'])})"
+    return texto
+
+
 # ---------------------------------------------------------------- leitura
 
 def detectar_separador(texto):
@@ -439,6 +565,7 @@ def montar_jogos(linhas):
             "escalacao": separar_lista(linha.get("escalacao", "")),
             "reservas": separar_lista(linha.get("reservas", "")),
             "substituicoes": separar_lista(linha.get("substituicoes", "")),
+            "gols": separar_lista(linha.get("gols", "")),
             "fotos": [f.strip() for f in linha.get("fotos", "").split(",") if f.strip()],
         })
     return jogos
@@ -542,6 +669,9 @@ def json_jogos(jogos):
             resultado = ""
             placar_texto = jogo["placar"]
         titulares, reservas, substituicoes, _ = montar_escalacao(jogo)
+        gols, _ = resolver_gols(jogo["gols"], jogo["adversario"])
+        # só mostramos o placar parcial de cada gol quando a lista de gols fecha com o placar final
+        gols_conferem = (contar_gols(gols) == placar) if (placar and gols) else None
         dados[jogo["id"]] = {
             "id": jogo["id"],
             "data": jogo["data"].isoformat(),
@@ -557,6 +687,8 @@ def json_jogos(jogos):
             "titulares": titulares,
             "reservas": reservas,
             "substituicoes": substituicoes,
+            "gols": gols,
+            "gols_conferem": gols_conferem,
             "fotos": jogo["fotos"],
         }
     return json.dumps(dados, ensure_ascii=False, indent=2)
@@ -641,6 +773,22 @@ def avisos(jogos):
             if not (PASTA_FOTOS_JOGOS / jogo["id"] / foto).exists():
                 print(f"Aviso: foto não encontrada em imagens/jogos/{jogo['id']}/{foto} ({rotulo}).")
 
+        gols, problemas_gols = resolver_gols(jogo["gols"], jogo["adversario"])
+        for p in problemas_gols:
+            print(f"Aviso: gols de {rotulo}: {p}.")
+        placar = interpretar_placar(jogo["placar"])
+        if gols and not placar:
+            print(f"Aviso: {rotulo}: há gols lançados, mas o placar está vazio.")
+        elif gols and contar_gols(gols) != placar:
+            nosso, deles = contar_gols(gols)
+            print(f"Aviso: {rotulo}: os gols lançados ({nosso} x {deles}) não batem com o placar ({placar[0]} x {placar[1]}).")
+        em_jogo = {chave_entrada(e) for e in titulares + reservas}
+        if em_jogo:
+            for g in gols:
+                for pessoa in (g["autor"], g["assistencia"]):
+                    if pessoa and chave_entrada(pessoa) not in em_jogo:
+                        print(f"Aviso: {rotulo}: {pessoa['nome']} fez gol/assistência mas não está nos titulares nem nas reservas.")
+
 
 def atualizar_paginas(jogos, hoje=None):
     hoje = hoje or date.today()
@@ -724,6 +872,64 @@ def v_substituicoes_factory(linha):
             raise ValueError(problemas[0][0].upper() + problemas[0][1:] + ".")
         return ", ".join(texto_substituicao(p) for p in pares)
     return validar
+
+
+def canonico_pessoa(item):
+    # Confere autor/assistência com o elenco; oferece cadastrar como suporte quem não está nele.
+    suporte = interpretar_suporte(item)
+    if suporte:
+        nome, posicao = suporte
+        if no_elenco_exato(nome):
+            print(f"    Aviso: {nome} já está no elenco; sem o '(suporte)' ele aparece com camisa e perfil.")
+        return formatar_suporte(nome, posicao)
+    pessoa, motivo = resolver_jogador(item)
+    if pessoa is not None:
+        return pessoa["nome"]
+    if "mais de um" in motivo:
+        raise ValueError(motivo[0].upper() + motivo[1:] + ".")
+    resposta = input(f"    '{item}' não está no elenco. Adicionar como suporte? (s/N): ").strip().lower()
+    if resposta != "s":
+        raise ValueError("Confira o nome/camisa, ou escreva 'Nome (suporte)' para quem não é do elenco.")
+    posicao = input("    Posição do suporte (opcional, ex.: Goleiro): ").strip()
+    return formatar_suporte(item, posicao)
+
+
+def v_gols_factory(linha):
+    def validar(texto, atual):
+        saida = []
+        for item in separar_lista(texto):
+            d = interpretar_gol(item)
+            if not d["autor"]:
+                raise ValueError("Falta quem fez o gol (ou 'adv' para gol do adversário).")
+            if eh_gol_do_adversario(d["autor"], linha.get("adversario", "")):
+                autor, assistencia = "adv", ""
+            else:
+                autor = canonico_pessoa(d["autor"])
+                assistencia = canonico_pessoa(d["assistencia"]) if d["assistencia"] else ""
+            item_texto = f"{autor} {d['minuto']}" if d["minuto"] else autor
+            if assistencia:
+                item_texto += f" (ast. {assistencia})"
+            saida.append(item_texto)
+        _, problemas = resolver_gols(saida, linha.get("adversario", ""))
+        if problemas:
+            raise ValueError(problemas[0][0].upper() + problemas[0][1:] + ".")
+        return ", ".join(saida)
+    return validar
+
+
+def perguntar_gols(linha, novo, forcar=False):
+    if not (forcar or linha.get("placar") or linha.get("gols")):
+        linha["gols"] = ""
+        return
+    mostrar_elenco()
+    print("  (gols: 'Quem fez minuto (ast. Quem passou)', separados por vírgula. Ex.: Rulim 23' (ast. Paiva), Novaes 40'")
+    print("   Gol do adversário: adv 55'. Minuto e assistência são opcionais.)")
+    linha["gols"] = perguntar("Gols", None if novo else linha.get("gols", ""), v_gols_factory(linha))
+    placar = interpretar_placar(linha.get("placar", ""))
+    gols, _ = resolver_gols(separar_lista(linha["gols"]), linha.get("adversario", ""))
+    if placar and gols and contar_gols(gols) != placar:
+        nosso, deles = contar_gols(gols)
+        print(f"  Aviso: os gols lançados ({nosso} x {deles}) não batem com o placar ({placar[0]} x {placar[1]}).")
 
 
 def perguntar(rotulo, atual=None, validar=None, obrigatorio=False):
@@ -827,6 +1033,7 @@ def preencher(linha, novo):
     linha["local"] = perguntar("Local", atual("local"))
     linha["placar"] = perguntar("Placar, se já aconteceu (ex.: 2 x 1)", atual("placar"), v_placar)
     perguntar_escalacao(linha, novo)
+    perguntar_gols(linha, novo)
     id_jogo = id_da_linha(linha)
     linha["fotos"] = perguntar(
         f"Fotos do jogo, na pasta imagens/jogos/{id_jogo}/ (ex.: 1.jpeg, 2.jpeg ou 'auto')",
@@ -852,6 +1059,8 @@ def mostrar_lista(ordenadas):
             info.append(f"{len(separar_lista(l['escalacao']))} titulares")
         if l.get("substituicoes"):
             info.append(f"{len(separar_lista(l['substituicoes']))} subst.")
+        if l.get("gols"):
+            info.append(f"{len(separar_lista(l['gols']))} gols")
         if l.get("fotos"):
             info.append(f"{len([f for f in l['fotos'].split(',') if f.strip()])} fotos")
         extra = f"  [{', '.join(info)}]" if info else ""
@@ -968,6 +1177,25 @@ def cmd_escalacao(busca=""):
         print("  Escalação salva.")
 
 
+def cmd_gols(busca=""):
+    colunas, linhas, separador = carregar_tabela()
+    termo = busca
+    while True:
+        if not termo:
+            mostrar_lista(ordenar_linhas(linhas))
+            termo = input("Número da lista, adversário ou data (Enter para encerrar): ").strip()
+            if not termo:
+                break
+        linha = escolher_jogo(linhas, termo)
+        termo = ""
+        if not linha:
+            continue
+        print(f"\n{titulo_jogo(linha)}  (placar: {linha.get('placar') or 'não lançado'})")
+        perguntar_gols(linha, novo=False, forcar=True)
+        salvar_tabela(colunas, linhas, separador)
+        print("  Gols salvos.")
+
+
 def cmd_remover(busca=""):
     colunas, linhas, separador = carregar_tabela()
     termo = busca
@@ -1018,6 +1246,8 @@ def principal():
     grupo.add_argument("--placar", action="store_true", help="lança o placar de um jogo")
     grupo.add_argument("--escalacao", nargs="?", const="", default=None, metavar="JOGO",
                        help="define titulares, reservas e substituições de um jogo")
+    grupo.add_argument("--gols", nargs="?", const="", default=None, metavar="JOGO",
+                       help="lança os gols de um jogo (quem fez, assistência e minuto)")
     grupo.add_argument("--fotos", action="store_true", help="preenche a coluna fotos lendo as pastas imagens/jogos/<id>/")
     grupo.add_argument("--remover", nargs="?", const="", default=None, metavar="JOGO", help="remove um jogo")
     grupo.add_argument("--listar", action="store_true", help="mostra todos os jogos, sem alterar nada")
@@ -1036,6 +1266,8 @@ def principal():
             cmd_placar()
         elif args.escalacao is not None:
             cmd_escalacao(args.escalacao)
+        elif args.gols is not None:
+            cmd_gols(args.gols)
         elif args.fotos:
             cmd_fotos()
         elif args.remover is not None:

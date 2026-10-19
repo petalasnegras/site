@@ -525,16 +525,8 @@
           btnPrev.hidden = true;
           btnNext.hidden = true;
           indicadoresEl.hidden = true;
-        } else if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          // Autoplay: pausa quando o mouse está em cima
-          let autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
-          const wrapper = document.querySelector('.carrossel-wrapper');
-          wrapper.addEventListener('mouseenter', () => clearInterval(autoplay));
-          wrapper.addEventListener('mouseleave', () => {
-            clearInterval(autoplay);
-            autoplay = setInterval(() => irParaSlide(slideAtual + 1), 4000);
-          });
         }
+        // Sem autoplay: as fotos só passam quando a pessoa clica nas setas, nas bolinhas ou arrasta.
       }
     })();
   </script>

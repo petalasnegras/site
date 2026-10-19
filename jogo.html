@@ -126,7 +126,8 @@
     }
     .jg-detalhes[open] summary::after { transform: rotate(-135deg); }
     .jg-nota { margin: -0.4rem 0 1rem; font-size: 0.85rem; color: var(--suave); }
-    .jg-detalhes #escalacao-conteudo { padding: 0.25rem 1.25rem 1.5rem; }
+    .jg-detalhes #escalacao-conteudo,
+    .jg-detalhes #gols-conteudo { padding: 0.25rem 1.25rem 1.5rem; }
 
     /* Etiquetas nos cartões (suporte, entrou, saiu) */
     .jg-tag {
@@ -171,6 +172,62 @@
     }
     .jg-subs .entrou { color: #5fd38d; font-weight: 600; }
     .jg-subs .saiu { color: #ee7d7d; font-weight: 600; }
+
+    /* Gols do jogo */
+    .jg-gols { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+    .jg-gol {
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      background: var(--superficie);
+      border: 1px solid var(--borda);
+      border-left: 3px solid var(--roxo-claro);
+      border-radius: 12px;
+    }
+    .jg-gol.contra { border-left-color: #ee7d7d; }
+    .jg-gol-minuto {
+      min-width: 3rem;
+      padding: 0.15rem 0.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--roxo-claro);
+      border: 1px solid rgba(181, 122, 212, 0.5);
+      border-radius: 999px;
+    }
+    .jg-gol.contra .jg-gol-minuto { color: #ee7d7d; border-color: rgba(238, 125, 125, 0.5); }
+    .jg-gol-foto {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--superficie-2);
+      border: 1px solid var(--borda);
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+    }
+    .jg-gol-corpo { min-width: 0; }
+    .jg-gol-autor { display: block; font-weight: 700; overflow-wrap: anywhere; }
+    .jg-gol-autor a { color: inherit; text-decoration: none; }
+    .jg-gol-autor a:hover { text-decoration: underline; }
+    .jg-gol-assist { display: block; margin-top: 0.1rem; font-size: 0.85rem; color: var(--suave); overflow-wrap: anywhere; }
+    .jg-gol-assist a { color: var(--roxo-claro); text-decoration: none; font-weight: 600; }
+    .jg-gol-assist a:hover { text-decoration: underline; }
+    .jg-gol-parcial {
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--suave);
+      white-space: nowrap;
+    }
+    @media (max-width: 480px) {
+      .jg-gol { grid-template-columns: auto minmax(0, 1fr) auto; }
+      .jg-gol-foto { display: none; }
+    }
 
     @media (max-width: 560px) {
       .jg-placar { grid-template-columns: 1fr; gap: 0.5rem; }
@@ -360,6 +417,19 @@
             </div>
           </div>
 
+          <!-- Gols -->
+          <section id="secao-gols" class="jg-bloco" hidden>
+            <details class="jg-detalhes">
+              <summary>
+                <h2>Gols ⚽</h2>
+                <span id="gols-resumo" class="jg-resumo"></span>
+              </summary>
+              <div id="gols-conteudo">
+                <ul id="gols-lista" class="jg-gols"></ul>
+              </div>
+            </details>
+          </section>
+
           <!-- Escalação -->
           <section id="secao-escalacao" class="jg-bloco" hidden>
             <details class="jg-detalhes">
@@ -461,12 +531,116 @@
           $('jogo-item-local').hidden = false;
         }
 
+        montarGols(jogo, jogadores);
         montarEscalacao(jogo, jogadores);
 
         $('jogo-carregando').hidden = true;
         $('jogo-conteudo').hidden = false;
 
         carregarFotos(jogo).then(iniciarCarrossel);
+      }
+
+      // ---------- Gols ----------
+      // jogos.json: gols = [{ time: 'nosso'|'adversario', minuto, autor, assistencia, parcial }]
+      // autor/assistencia: { nome, numero, slug, suporte }. Gol do adversário não tem autor.
+      function perfilDe(pessoa, jogadores) {
+        return (pessoa && !pessoa.suporte && pessoa.slug && jogadores[pessoa.slug]) ? jogadores[pessoa.slug] : null;
+      }
+
+      function nomeComLink(pessoa, jogadores) {
+        var perfil = perfilDe(pessoa, jogadores);
+        if (!perfil) {
+          var span = document.createElement('span');
+          span.textContent = pessoa.nome;
+          return span;
+        }
+        var a = document.createElement('a');
+        a.href = 'jogador.html?id=' + encodeURIComponent(pessoa.slug);
+        a.textContent = pessoa.nome;
+        return a;
+      }
+
+      function montarGols(jogo, jogadores) {
+        var gols = jogo.gols || [];
+        if (!gols.length) return;
+
+        var lista = $('gols-lista');
+        lista.innerHTML = '';
+
+        gols.forEach(function (g) {
+          var contra = g.time === 'adversario';
+          var li = document.createElement('li');
+          li.className = 'jg-gol' + (contra ? ' contra' : '');
+
+          var minuto = document.createElement('span');
+          minuto.className = 'jg-gol-minuto';
+          minuto.textContent = g.minuto || '–';
+          li.appendChild(minuto);
+
+          var perfil = contra ? null : perfilDe(g.autor, jogadores);
+          if (perfil) {
+            var foto = document.createElement('img');
+            foto.className = 'jg-gol-foto';
+            foto.alt = '';
+            foto.loading = 'lazy';
+            foto.onerror = function () { this.onerror = null; this.src = 'imagens/placeholder.svg'; };
+            foto.src = 'imagens/jogadores/' + encodeURIComponent(perfil.foto);
+            li.appendChild(foto);
+          } else {
+            var bola = document.createElement('span');
+            bola.className = 'jg-gol-foto';
+            bola.setAttribute('aria-hidden', 'true');
+            bola.textContent = '⚽';
+            li.appendChild(bola);
+          }
+
+          var corpo = document.createElement('div');
+          corpo.className = 'jg-gol-corpo';
+
+          var autor = document.createElement('span');
+          autor.className = 'jg-gol-autor';
+          if (contra) {
+            autor.textContent = 'Gol do ' + jogo.adversario;
+          } else {
+            autor.appendChild(nomeComLink(g.autor, jogadores));
+            if (g.autor.numero !== null && g.autor.numero !== undefined) {
+              autor.appendChild(document.createTextNode(' #' + g.autor.numero));
+            }
+          }
+          corpo.appendChild(autor);
+
+          if (!contra && g.assistencia) {
+            var assist = document.createElement('span');
+            assist.className = 'jg-gol-assist';
+            assist.appendChild(document.createTextNode('Assistência: '));
+            assist.appendChild(nomeComLink(g.assistencia, jogadores));
+            corpo.appendChild(assist);
+          }
+          li.appendChild(corpo);
+
+          // placar depois do gol (só quando a lista de gols fecha com o placar final)
+          if (jogo.gols_conferem === true && g.parcial) {
+            var parcial = document.createElement('span');
+            parcial.className = 'jg-gol-parcial';
+            parcial.title = 'Placar após o gol';
+            parcial.textContent = g.parcial;
+            li.appendChild(parcial);
+          }
+
+          lista.appendChild(li);
+        });
+
+        // resumo ao lado do título (a lista fica recolhida até a pessoa abrir)
+        var nossos = gols.filter(function (g) { return g.time !== 'adversario'; });
+        var deles = gols.length - nossos.length;
+        var assists = nossos.filter(function (g) { return g.assistencia; }).length;
+        var partes = [];
+        if (nossos.length) partes.push(nossos.length + (nossos.length === 1 ? ' gol' : ' gols') + ' do time');
+        if (assists) partes.push(assists + (assists === 1 ? ' assistência' : ' assistências'));
+        if (deles) partes.push(deles + (deles === 1 ? ' gol sofrido' : ' gols sofridos'));
+        $('gols-resumo').textContent = partes.join(' · ');
+
+        $('secao-gols').hidden = false;
       }
 
       // ---------- Escalação ----------
@@ -701,15 +875,8 @@
           btnPrev.hidden = true;
           btnNext.hidden = true;
           indicadoresEl.hidden = true;
-        } else if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          var timer = setInterval(function () { irPara(atual + 1); }, 4000);
-          var caixa = document.querySelector('.carrossel-wrapper');
-          caixa.addEventListener('mouseenter', function () { clearInterval(timer); });
-          caixa.addEventListener('mouseleave', function () {
-            clearInterval(timer);
-            timer = setInterval(function () { irPara(atual + 1); }, 4000);
-          });
         }
+        // sem autoplay: as fotos só passam quando a pessoa clica nas setas, nas bolinhas ou arrasta
 
         $('secao-carrossel').hidden = false;
       }
