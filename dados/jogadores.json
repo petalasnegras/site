@@ -96,19 +96,19 @@
     "gols": 0,
     "assistencias": 1
   },
-  "xis": {
-    "nome": "Xis",
+  "ayello": {
+    "nome": "Ayello",
     "numero": 7,
-    "posicao": "Volante",
+    "posicao": "Meio-campista",
     "grupo": "meio",
-    "foto": "xis.jpeg",
+    "foto": "ayello.jpeg",
     "formacao": "",
-    "idade": "",
-    "pe": "",
-    "altura": "",
+    "idade": "17",
+    "pe": "Canhoto",
+    "altura": "1.85",
     "titulos": "",
     "fotos_jogo": [],
-    "jogos": 2,
+    "jogos": 4,
     "gols": 0,
     "assistencias": 0
   },
@@ -269,6 +269,22 @@
     "gols": 0,
     "assistencias": 0
   },
+  "xis": {
+    "nome": "Xis",
+    "numero": 23,
+    "posicao": "Volante",
+    "grupo": "meio",
+    "foto": "xis.jpeg",
+    "formacao": "",
+    "idade": "",
+    "pe": "",
+    "altura": "",
+    "titulos": "",
+    "fotos_jogo": [],
+    "jogos": 2,
+    "gols": 0,
+    "assistencias": 0
+  },
   "raul": {
     "nome": "Raul",
     "numero": 77,
@@ -282,22 +298,6 @@
     "titulos": "",
     "fotos_jogo": [],
     "jogos": 2,
-    "gols": 0,
-    "assistencias": 0
-  },
-  "paiva": {
-    "nome": "Paiva",
-    "numero": 95,
-    "posicao": "Meio-campista",
-    "grupo": "meio",
-    "foto": "paiva.jpeg",
-    "formacao": "",
-    "idade": "17",
-    "pe": "Canhoto",
-    "altura": "1.85",
-    "titulos": "",
-    "fotos_jogo": [],
-    "jogos": 4,
     "gols": 0,
     "assistencias": 0
   },
