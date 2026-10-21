@@ -18,7 +18,6 @@ class GerenciadorJogadoresApp:
         self.caminho_html = "ranking.html"
         self.dados_json = {}
 
-        # Configurar Estilo Tkinter
         self.estilo = ttk.Style()
         self.estilo.theme_use("clam")
         
@@ -38,7 +37,6 @@ class GerenciadorJogadoresApp:
     def criar_widgets(self):
         frame_principal = ttk.LabelFrame(self.root, text=" Gerenciamento de Estatísticas ", padding=15)
         frame_principal.pack(fill="both", expand=True, padx=15, pady=15)
-
         frame_principal.columnconfigure(1, weight=1)
 
         btn_carregar = ttk.Button(frame_principal, text="📂 Selecionar JSON...", command=self.selecionar_json)
@@ -152,68 +150,67 @@ class GerenciadorJogadoresApp:
         nome_limpo = "".join([c for c in nfkd if not unicodedata.combining(c)]).lower().strip()
         return f"imagens/jogadores/{nome_limpo}.jpeg"
 
-    def gerar_linhas_tabela(self, campo_stat):
+    def gerar_cards_ranking(self, campo_stat):
         jogadores_filtrados = []
         for k, v in self.dados_json.items():
             if v.get("grupo") == "tecnico" or v.get("posicao") in ["Técnico", "Fotógrafa"]:
                 continue
             val = v.get(campo_stat, 0)
             if val > 0:
-                jogadores_filtrados.append(v)
+                # Armazena a chave ID para o link do perfil
+                atleta = dict(v)
+                atleta['id_link'] = k
+                jogadores_filtrados.append(atleta)
 
-        # Ordena de forma decrescente pela estatística
         jogadores_filtrados.sort(key=lambda x: (x.get(campo_stat, 0), x.get("jogos", 0)), reverse=True)
 
         if not jogadores_filtrados:
-            return '<tr><td colspan="4" class="sem-dados">Nenhum registro para esta categoria.</td></tr>'
+            return '<div class="vazio">Nenhum registro para esta categoria.</div>'
 
-        linhas = []
+        elementos = []
         posicao_atual = 1
         ultimo_valor = None
 
-        # Rótulo de texto amigável baseado na categoria
         if campo_stat == "gols":
-            label_unidade = "Gol"
-            label_unidade_plural = "Gols"
+            label_unidade, label_plural = "Gol", "Gols"
         elif campo_stat == "assistencias":
-            label_unidade = "Assistência"
-            label_unidade_plural = "Assistências"
+            label_unidade, label_plural = "Assistência", "Assistências"
         else:
-            label_unidade = "Jogo"
-            label_unidade_plural = "Jogos"
+            label_unidade, label_plural = "Jogo", "Jogos"
 
         for i, j in enumerate(jogadores_filtrados):
             nome_real = j.get('nome', '')
+            id_atleta = j.get('id_link', '')
             foto_path = self.obter_caminho_foto(nome_real)
             val_stat = j.get(campo_stat, 0)
-            num_tag = f'<span class="num-camisa-tag">#{j.get("numero")}</span>' if j.get("numero") else ''
+            num_camisa = f'<span class="atleta-numero">#{j.get("numero")}</span>' if j.get("numero") else ''
 
             if val_stat != ultimo_valor:
                 if ultimo_valor is not None:
                     posicao_atual += 1
                 ultimo_valor = val_stat
                 
-                # Cria a linha de subtítulo/separador indicando a quantidade exata do bloco
-                texto_subtitulo = f"{val_stat} {label_unidade if val_stat == 1 else label_unidade_plural}"
-                linha_divisor = f'''<tr class="linha-grupo-divisor">
-  <td colspan="4"><span>{texto_subtitulo}</span></td>
-</tr>'''
-                linhas.append(linha_divisor)
+                txt_subtitulo = f"{val_stat} {label_unidade if val_stat == 1 else label_plural}"
+                elementos.append(f'<div class="ranking-divisor-grupo">{txt_subtitulo}</div>')
 
-            linha = f'''<tr>
-  <td class="col-pos">{posicao_atual}º</td>
-  <td class="col-jogador">
-    <div class="atleta-info">
-      <img src="{foto_path}" alt="{nome_real}" class="atleta-foto-mini" onerror="this.src='imagens/logo.jpeg'">
-      <strong>{nome_real}</strong> {num_tag}
+            # Bloco/Card inteiro clicável redirecionando para jogador.html?id=...
+            card = f'''<a class="ranking-card-item" href="jogador.html?id={id_atleta}">
+  <div class="ranking-card-esquerda">
+    <span class="ranking-posicao">{posicao_atual}º</span>
+    <img src="{foto_path}" alt="{nome_real}" class="ranking-foto-mini" onerror="this.src='imagens/logo.jpeg'">
+    <div class="ranking-info-atleta">
+      <div class="ranking-nome-linha">
+        <strong>{nome_real}</strong>
+        {num_camisa}
+      </div>
+      <span class="ranking-posicao-sub">{j.get('posicao', '-')}</span>
     </div>
-  </td>
-  <td class="col-posicao-atleta">{j.get('posicao', '-')}</td>
-  <td class="col-stat">{val_stat}</td>
-</tr>'''
-            linhas.append(linha)
+  </div>
+  <div class="ranking-stat-valor">{val_stat}</div>
+</a>'''
+            elementos.append(card)
 
-        return "\n".join(linhas)
+        return "\n".join(elementos)
 
     def atualizar_html(self):
         if not os.path.exists(self.caminho_html):
@@ -224,7 +221,7 @@ class GerenciadorJogadoresApp:
             with open(self.caminho_html, 'r', encoding='utf-8') as f:
                 conteudo_html = f.read()
 
-            html_gols = self.gerar_linhas_tabela("gols")
+            html_gols = self.gerar_cards_ranking("gols")
             conteudo_html = re.sub(
                 r'<!-- RANKING_ARTILHARIA_INICIO -->.*?<!-- RANKING_ARTILHARIA_FIM -->',
                 f'<!-- RANKING_ARTILHARIA_INICIO -->\n{html_gols}\n<!-- RANKING_ARTILHARIA_FIM -->',
@@ -232,7 +229,7 @@ class GerenciadorJogadoresApp:
                 flags=re.DOTALL
             )
 
-            html_assists = self.gerar_linhas_tabela("assistencias")
+            html_assists = self.gerar_cards_ranking("assistencias")
             conteudo_html = re.sub(
                 r'<!-- RANKING_ASSISTENCIAS_INICIO -->.*?<!-- RANKING_ASSISTENCIAS_FIM -->',
                 f'<!-- RANKING_ASSISTENCIAS_INICIO -->\n{html_assists}\n<!-- RANKING_ASSISTENCIAS_FIM -->',
@@ -240,7 +237,7 @@ class GerenciadorJogadoresApp:
                 flags=re.DOTALL
             )
 
-            html_jogos = self.gerar_linhas_tabela("jogos")
+            html_jogos = self.gerar_cards_ranking("jogos")
             conteudo_html = re.sub(
                 r'<!-- RANKING_JOGOS_INICIO -->.*?<!-- RANKING_JOGOS_FIM -->',
                 f'<!-- RANKING_JOGOS_INICIO -->\n{html_jogos}\n<!-- RANKING_JOGOS_FIM -->',
