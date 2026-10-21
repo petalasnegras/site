@@ -818,3 +818,140 @@ a.jogo {
 a.jogo:hover { border-color: rgba(181, 122, 212, 0.55); transform: translateY(-1px); }
 a.jogo:focus-visible { border-radius: 12px; }
 /* JOGO-LINK:FIM */
+
+/* ==========================================
+   CALENDÁRIO 100% RESPONSIVO (SEM SCROLL LATERAL)
+   ========================================== */
+
+.calendario-legenda {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.legenda-itens {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.item-legenda {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.item-legenda::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.item-legenda.evento-jogo::before { background-color: #6d28d9; }
+.item-legenda.evento-treino::before { background-color: #2563eb; }
+
+/* Grade compacta garantindo 7 colunas exatas na tela */
+.grade-calendario {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background-color: #27272a;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dia-semana {
+  background-color: #18181b;
+  color: #a1a1aa;
+  padding: 0.4rem 0.1rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.dia-celula {
+  background-color: #09090b;
+  min-height: 60px;
+  max-height: 85px;
+  padding: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.dia-celula.outro-mes {
+  opacity: 0.2;
+  background-color: #121215;
+}
+
+.num-dia {
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: #e4e4e7;
+}
+
+/* Eventos adaptados para não estourarem a célula */
+.evento {
+  font-size: 0.55rem;
+  padding: 0.1rem 0.2rem;
+  border-radius: 2px;
+  color: #ffffff;
+  line-height: 1.1;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.evento strong {
+  font-size: 0.55rem;
+  display: block;
+}
+
+.evento-jogo {
+  background-color: #6d28d9;
+  border-left: 2px solid #a855f7;
+}
+
+.evento-treino {
+  background-color: #2563eb;
+  border-left: 2px solid #60a5fa;
+}
+
+/* Ajustes automáticos para Telas Maiores (Tablets e Desktops) */
+@media (min-width: 640px) {
+  .dia-semana {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  .dia-celula {
+    min-height: 100px;
+    max-height: none;
+    padding: 0.5rem;
+  }
+  .num-dia {
+    font-size: 0.875rem;
+  }
+  .evento {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+    -webkit-line-clamp: unset;
+  }
+  .evento strong {
+    font-size: 0.75rem;
+    display: inline;
+  }
+}

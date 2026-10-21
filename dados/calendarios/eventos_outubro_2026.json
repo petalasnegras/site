@@ -1,0 +1,26 @@
+{
+  "mes_ano": "Outubro 2026",
+  "offset_dias_anteriores": [
+    28,
+    29,
+    30
+  ],
+  "total_dias_mes": 31,
+  "eventos": {
+    "10": {
+      "tipo": "jogo",
+      "hora": "11:00",
+      "titulo": "Pétalas Negras x União Balancê"
+    },
+    "17": {
+      "tipo": "jogo",
+      "hora": "10:00",
+      "titulo": "Pétalas Negras x Ki Sobra"
+    },
+    "24": {
+      "tipo": "treino",
+      "hora": "09:30",
+      "titulo": "Treino"
+    }
+  }
+}

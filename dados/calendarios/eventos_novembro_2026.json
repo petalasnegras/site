@@ -1,0 +1,13 @@
+{
+  "mes_ano": "Novembro 2026",
+  "offset_dias_anteriores": [
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "total_dias_mes": 30,
+  "eventos": {}
+}

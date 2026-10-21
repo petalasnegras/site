@@ -124,7 +124,7 @@
       },
       {
         "nome": "Lipe",
-        "numero": 19,
+        "numero": 24,
         "posicao": "Centroavante",
         "grupo": "ataque",
         "slug": "lipe",
@@ -241,7 +241,7 @@
         "minuto": "6'",
         "autor": {
           "nome": "Lipe",
-          "numero": 19,
+          "numero": 24,
           "posicao": "Centroavante",
           "slug": "lipe",
           "suporte": false
@@ -462,7 +462,7 @@
       },
       {
         "nome": "Lipe",
-        "numero": 19,
+        "numero": 24,
         "posicao": "Centroavante",
         "grupo": "ataque",
         "slug": "lipe",

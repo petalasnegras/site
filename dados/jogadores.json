@@ -221,22 +221,6 @@
     "gols": 0,
     "assistencias": 1
   },
-  "lipe": {
-    "nome": "Lipe",
-    "numero": 19,
-    "posicao": "Centroavante",
-    "grupo": "ataque",
-    "foto": "lipe.jpeg",
-    "formacao": "",
-    "idade": "",
-    "pe": "",
-    "altura": "",
-    "titulos": "",
-    "fotos_jogo": [],
-    "jogos": 2,
-    "gols": 1,
-    "assistencias": 0
-  },
   "ivan": {
     "nome": "Ivan",
     "numero": 21,
@@ -283,6 +267,22 @@
     "fotos_jogo": [],
     "jogos": 2,
     "gols": 0,
+    "assistencias": 0
+  },
+  "lipe": {
+    "nome": "Lipe",
+    "numero": 24,
+    "posicao": "Centroavante",
+    "grupo": "ataque",
+    "foto": "lipe.jpeg",
+    "formacao": "",
+    "idade": "",
+    "pe": "",
+    "altura": "",
+    "titulos": "",
+    "fotos_jogo": [],
+    "jogos": 2,
+    "gols": 1,
     "assistencias": 0
   },
   "raul": {
