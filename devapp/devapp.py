@@ -38,6 +38,18 @@ POSICOES = ["Goleiro", "Zagueiro", "Lateral direito", "Lateral esquerdo", "Volan
             "Ponta", "Centroavante", "Técnico", "Preparador físico", "Auxiliar técnico", "Fotógrafo"]
 PES = ["", "Destro", "Canhoto", "Ambidestro"]
 
+# Palette: Dark Modern Dashboard (Esportivo)
+DARK_BG = "#121418"        # Fundo principal
+CARD_BG = "#1A1D24"        # Fundo de painéis e cards
+SURFACE_BG = "#232731"     # Elementos de entrada/superfície
+TEXT_PRIMARY = "#F1F5F9"   # Texto principal
+TEXT_MUTED = "#94A3B8"     # Texto secundário/dicas
+ACCENT = "#10B981"         # Verde destaque esportivo
+ACCENT_HOVER = "#059669"   # Verde hover
+BORDER_COLOR = "#2D333F"   # Cor de bordas suaves
+ERROR_COLOR = "#F43F5E"    # Vermelho de erro
+WARNING_COLOR = "#F59E0B"  # Amarelo/Laranja aviso
+
 
 # ====================================================================== utilidades de interface
 
@@ -77,39 +89,43 @@ class Dialogo(tk.Toplevel):
         self.title(titulo)
         self.transient(mestre)
         self.resizable(False, False)
+        self.configure(bg=CARD_BG)
         self.ao_salvar = ao_salvar
         self.widgets = {}
         valores = valores or {}
 
-        corpo = ttk.Frame(self, padding=12)
+        corpo = ttk.Frame(self, padding=16)
         corpo.grid(sticky="nsew")
         linha = 0
         if dica:
-            ttk.Label(corpo, text=dica, foreground="#555", wraplength=470, justify="left").grid(
-                row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+            ttk.Label(corpo, text=dica, foreground=TEXT_MUTED, wraplength=470, justify="left").grid(
+                row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
             linha = 1
         for i, campo in enumerate(campos, start=linha):
             chave, rotulo, tipo = campo[0], campo[1], campo[2]
             extra = campo[3] if len(campo) > 3 else None
-            ttk.Label(corpo, text=rotulo).grid(row=i, column=0, sticky="nw", padx=(0, 10), pady=3)
+            ttk.Label(corpo, text=rotulo).grid(row=i, column=0, sticky="nw", padx=(0, 10), pady=4)
             inicial = str(valores.get(chave, "") or "")
             if tipo == "combo":
                 w = ttk.Combobox(corpo, values=extra or [], width=largura - 3)
                 w.set(inicial)
             elif tipo == "text":
-                w = tk.Text(corpo, width=largura, height=extra or 5, wrap="word", undo=True)
+                w = tk.Text(corpo, width=largura, height=extra or 5, wrap="word", undo=True,
+                            bg=SURFACE_BG, fg=TEXT_PRIMARY, insertbackground=ACCENT,
+                            bd=0, highlightthickness=1, highlightbackground=BORDER_COLOR,
+                            highlightcolor=ACCENT, relief="flat", font=("Segoe UI", 9))
                 w.insert("1.0", inicial)
             else:
                 w = ttk.Entry(corpo, width=largura)
                 w.insert(0, inicial)
             if tipo != "text":
                 w.bind("<Return>", lambda _e: self._salvar())
-            w.grid(row=i, column=1, sticky="ew", pady=3)
+            w.grid(row=i, column=1, sticky="ew", pady=4)
             self.widgets[chave] = (tipo, w)
 
         botoes = ttk.Frame(corpo)
-        botoes.grid(row=len(campos) + linha, column=0, columnspan=2, sticky="e", pady=(10, 0))
-        ttk.Button(botoes, text="Salvar", command=self._salvar).pack(side="right")
+        botoes.grid(row=len(campos) + linha, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        ttk.Button(botoes, text="Salvar", style="Accent.TButton", command=self._salvar).pack(side="right")
         ttk.Button(botoes, text="Cancelar", command=self.destroy).pack(side="right", padx=(0, 8))
         self.bind("<Escape>", lambda _e: self.destroy())
 
@@ -139,9 +155,13 @@ class Dialogo(tk.Toplevel):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Pétalas Negras - gerenciador do site")
+        self.title("Pétalas Negras - Gerenciador do Site")
         self.geometry("1000x720")
         self.minsize(860, 560)
+        self.configure(bg=DARK_BG)
+
+        self._aplicar_tema_escuro()
+
         self.site = None
         self.var_pasta = tk.StringVar()
         self.var_auto = tk.BooleanVar(value=True)
@@ -156,12 +176,90 @@ class App(tk.Tk):
         else:
             self.after(200, self.escolher_pasta)
 
+    # ------------------------------------------------------------ estilização
+
+    def _aplicar_tema_escuro(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        # Configurações Globais
+        style.configure(".", background=DARK_BG, foreground=TEXT_PRIMARY,
+                        fieldbackground=SURFACE_BG, font=("Segoe UI", 9),
+                        bordercolor=BORDER_COLOR, darkcolor=DARK_BG,
+                        lightcolor=DARK_BG, borderwidth=0)
+
+        # Container / Frames
+        style.configure("TFrame", background=DARK_BG)
+        style.configure("Card.TFrame", background=CARD_BG)
+
+        # Rótulos
+        style.configure("TLabel", background=DARK_BG, foreground=TEXT_PRIMARY)
+        style.configure("Card.TLabel", background=CARD_BG, foreground=TEXT_PRIMARY)
+        style.configure("Header.TLabel", font=("Segoe UI", 11, "bold"), foreground=ACCENT)
+
+        # Botões Padrão
+        style.configure("TButton", background=SURFACE_BG, foreground=TEXT_PRIMARY,
+                        borderwidth=0, focuscolor="", padding=(10, 5))
+        style.map("TButton",
+                  background=[("active", BORDER_COLOR), ("pressed", BORDER_COLOR)],
+                  foreground=[("active", TEXT_PRIMARY)])
+
+        # Botão Destaque (Accent)
+        style.configure("Accent.TButton", background=ACCENT, foreground="#000000",
+                        font=("Segoe UI", 9, "bold"), borderwidth=0, padding=(12, 5))
+        style.map("Accent.TButton",
+                  background=[("active", ACCENT_HOVER), ("pressed", ACCENT_HOVER)],
+                  foreground=[("active", "#000000")])
+
+        # Entradas de Texto
+        style.configure("TEntry", fieldbackground=SURFACE_BG, foreground=TEXT_PRIMARY,
+                        bordercolor=BORDER_COLOR, lightcolor=BORDER_COLOR, darkcolor=BORDER_COLOR,
+                        padding=5)
+        style.map("TEntry", bordercolor=[("focus", ACCENT)])
+
+        # Combobox
+        style.configure("TCombobox", fieldbackground=SURFACE_BG, foreground=TEXT_PRIMARY,
+                        background=SURFACE_BG, arrowcolor=TEXT_PRIMARY, padding=4)
+        style.map("TCombobox",
+                  fieldbackground=[("readonly", SURFACE_BG)],
+                  selectbackground=[("readonly", SURFACE_BG)],
+                  selectforeground=[("readonly", TEXT_PRIMARY)])
+
+        # Checkbutton
+        style.configure("TCheckbutton", background=DARK_BG, foreground=TEXT_PRIMARY, focuscolor="")
+        style.map("TCheckbutton", background=[("active", DARK_BG)])
+
+        # Separadores
+        style.configure("TSeparator", background=BORDER_COLOR)
+
+        # Abas (Notebook)
+        style.configure("TNotebook", background=DARK_BG, borderwidth=0)
+        style.configure("TNotebook.Tab", background=CARD_BG, foreground=TEXT_MUTED,
+                        padding=(14, 6), borderwidth=0, font=("Segoe UI", 9, "bold"))
+        style.map("TNotebook.Tab",
+                  background=[("selected", SURFACE_BG), ("active", SURFACE_BG)],
+                  foreground=[("selected", ACCENT), ("active", TEXT_PRIMARY)])
+
+        # Tabela (Treeview)
+        style.configure("Treeview", background=CARD_BG, foreground=TEXT_PRIMARY,
+                        fieldbackground=CARD_BG, rowheight=28, borderwidth=0)
+        style.configure("Treeview.Heading", background=SURFACE_BG, foreground=TEXT_MUTED,
+                        font=("Segoe UI", 9, "bold"), borderwidth=0, padding=4)
+        style.map("Treeview", background=[("selected", ACCENT)],
+                  foreground=[("selected", "#000000")])
+        style.map("Treeview.Heading", background=[("active", SURFACE_BG)])
+
+        # Barra de Rolagem
+        style.configure("Vertical.TScrollbar", background=CARD_BG, bordercolor=CARD_BG,
+                        troughcolor=DARK_BG, arrowcolor=TEXT_MUTED, borderwidth=0)
+        style.map("Vertical.TScrollbar", background=[("active", SURFACE_BG)])
+
     # ------------------------------------------------------------ montagem
 
     def _montar_topo(self):
-        topo = ttk.Frame(self, padding=(10, 8))
+        topo = ttk.Frame(self, padding=(12, 10))
         topo.pack(fill="x")
-        ttk.Label(topo, text="Pasta do site:").pack(side="left")
+        ttk.Label(topo, text="Pasta do site:", font=("Segoe UI", 9, "bold")).pack(side="left")
         ttk.Entry(topo, textvariable=self.var_pasta, state="readonly").pack(
             side="left", fill="x", expand=True, padx=8)
         ttk.Button(topo, text="Escolher...", command=self.escolher_pasta).pack(side="left")
@@ -169,13 +267,13 @@ class App(tk.Tk):
 
     def _montar_abas(self):
         self.abas = ttk.Notebook(self)
-        self.abas.pack(fill="both", expand=True, padx=10)
+        self.abas.pack(fill="both", expand=True, padx=12, pady=(0, 6))
         self._aba_elenco()
         self._aba_jogos()
 
     def _aba_elenco(self):
         aba = ttk.Frame(self.abas, padding=8)
-        self.abas.add(aba, text="  Elenco  ")
+        self.abas.add(aba, text=" ELENCO ")
         quadro, self.tv_elenco = _tabela(aba, [
             ("numero", "Nº", 50, "center"), ("nome", "Nome", 220, "w"), ("posicao", "Posição", 170, "w"),
             ("jogos", "Jogos", 70, "center"), ("gols", "Gols", 70, "center"),
@@ -197,7 +295,7 @@ class App(tk.Tk):
 
     def _aba_jogos(self):
         aba = ttk.Frame(self.abas, padding=8)
-        self.abas.add(aba, text="  Jogos  ")
+        self.abas.add(aba, text=" JOGOS ")
         quadro, self.tv_jogos = _tabela(aba, [
             ("data", "Data", 90, "center"), ("hora", "Hora", 60, "center"),
             ("adversario", "Adversário", 240, "w"), ("local", "Local", 200, "w"),
@@ -218,18 +316,22 @@ class App(tk.Tk):
             side="right")
 
     def _montar_rodape(self):
-        rodape = ttk.Frame(self, padding=(10, 6))
+        rodape = ttk.Frame(self, padding=(12, 8))
         rodape.pack(fill="both")
         linha = ttk.Frame(rodape)
         linha.pack(fill="x")
-        ttk.Button(linha, text="Atualizar site agora", command=self.atualizar_site).pack(side="left")
+        ttk.Button(linha, text="Atualizar site agora", style="Accent.TButton",
+                   command=self.atualizar_site).pack(side="left")
         ttk.Checkbutton(linha, text="Atualizar o site automaticamente após cada alteração",
                         variable=self.var_auto).pack(side="left", padx=12)
         ttk.Button(linha, text="Limpar log", command=self._limpar_log).pack(side="right")
-        self.txt_log = ScrolledText(rodape, height=7, state="disabled", wrap="word")
+        self.txt_log = ScrolledText(rodape, height=6, state="disabled", wrap="word",
+                                    bg=SURFACE_BG, fg=TEXT_PRIMARY, bd=0,
+                                    highlightthickness=1, highlightbackground=BORDER_COLOR,
+                                    font=("Consolas", 8))
         self.txt_log.pack(fill="both", expand=True, pady=(6, 0))
-        self.txt_log.tag_configure("erro", foreground="#b00020")
-        self.txt_log.tag_configure("aviso", foreground="#9a6700")
+        self.txt_log.tag_configure("erro", foreground=ERROR_COLOR)
+        self.txt_log.tag_configure("aviso", foreground=WARNING_COLOR)
 
     # ------------------------------------------------------------ log e execução
 
@@ -577,3 +679,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
