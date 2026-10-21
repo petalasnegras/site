@@ -1,18 +1,18 @@
 numero;nome;posicao;foto;jogos;gols;assistencias;idade;pe;altura;titulos;formacao;fotos_jogo
-1;Henrico;Goleiro;;4;0;0;17;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg
+1;Henrico;Goleiro;;4;0;0;17;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg, 7.jpeg, 8.jpeg
 2;Jonas;Lateral direito;;3;0;0;18;Destro;1.65;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg
-3;Heitor;Zagueiro;;2;0;0;18;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg
+3;Heitor;Zagueiro;;2;;;18;Destro;1.78;;;1.jpeg, 2.jpeg, 3.jpeg
 5;Enzo;Centroavante;;4;0;0;18;Destro;;;;
-6;João Vitor;Volante;;3;0;1;19;;;;;
+6;João Vitor;Volante;;3;;1;19;;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg, 7.jpeg, 8.jpeg, 9.jpeg, 10.jpeg
 23;Xis;Volante;;2;;;;;;;;
 8;Dereviani;Meio-campista;;4;0;0;17;Ambidestro;1.80;Campeão de um campeonato pelo Corinthians | Vice Campeão de um campeonato em Portugal (AreiaCup);;
 9;Biel;Centroavante;;2;0;0;18;Destro;1.75;;;
 10;Rulim;Ponta;;4;1;0;17;Destro;1.65;Futsal - Campeão ACM Sub 16 (2024) | Futsal - Campeão Leg Prata Sub 16 (2025) | Futsal - JEP segundo lugar Ouro Sub 18 (2025);;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg, 7.jpeg
 11;Novaes;Centroavante;;3;1;0;18;Destro;1.72;;;
-12;Maluli;Zagueiro;;4;0;0;17;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg
-14;Zampronio;Lateral esquerdo;;3;0;1;17;Ambidestro;1.86;;;
+12;Maluli;Zagueiro;;4;0;0;17;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 6.jpeg, 7.jpeg, 8.jpeg
+14;Zampronio;Lateral esquerdo;;3;;1;17;Ambidestro;1.86;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg
 24;Lipe;Centroavante;;2;1;;;;;;;
-22;Lucca;Zagueiro;;4;0;0;;;;;;
+22;Lucca;Zagueiro;;4;;;18;Canhoto;1.87;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg
 77;Raul;Ponta;;2;0;0;;;;;;
 7;Ayello;Meio-campista;;4;;;17;Canhoto;1.85;;;
 100;Rodrigo;Técnico;;;;;;;;;Formado em Ed. Física pela Unicsul;

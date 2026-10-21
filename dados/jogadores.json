@@ -15,7 +15,10 @@
       "2.jpeg",
       "3.jpeg",
       "4.jpeg",
-      "5.jpeg"
+      "5.jpeg",
+      "6.jpeg",
+      "7.jpeg",
+      "8.jpeg"
     ],
     "jogos": 4,
     "gols": 0,
@@ -53,7 +56,7 @@
     "formacao": "",
     "idade": "18",
     "pe": "Destro",
-    "altura": "",
+    "altura": "1.78",
     "titulos": "",
     "fotos_jogo": [
       "1.jpeg",
@@ -91,7 +94,18 @@
     "pe": "",
     "altura": "",
     "titulos": "",
-    "fotos_jogo": [],
+    "fotos_jogo": [
+      "1.jpeg",
+      "2.jpeg",
+      "3.jpeg",
+      "4.jpeg",
+      "5.jpeg",
+      "6.jpeg",
+      "7.jpeg",
+      "8.jpeg",
+      "9.jpeg",
+      "10.jpeg"
+    ],
     "jogos": 3,
     "gols": 0,
     "assistencias": 1
@@ -199,7 +213,10 @@
       "1.jpeg",
       "2.jpeg",
       "3.jpeg",
-      "4.jpeg"
+      "4.jpeg",
+      "6.jpeg",
+      "7.jpeg",
+      "8.jpeg"
     ],
     "jogos": 4,
     "gols": 0,
@@ -216,7 +233,13 @@
     "pe": "Ambidestro",
     "altura": "1.86",
     "titulos": "",
-    "fotos_jogo": [],
+    "fotos_jogo": [
+      "1.jpeg",
+      "2.jpeg",
+      "3.jpeg",
+      "4.jpeg",
+      "5.jpeg"
+    ],
     "jogos": 3,
     "gols": 0,
     "assistencias": 1
@@ -244,11 +267,16 @@
     "grupo": "zagueiro",
     "foto": "lucca.jpeg",
     "formacao": "",
-    "idade": "",
-    "pe": "",
-    "altura": "",
+    "idade": "18",
+    "pe": "Canhoto",
+    "altura": "1.87",
     "titulos": "",
-    "fotos_jogo": [],
+    "fotos_jogo": [
+      "1.jpeg",
+      "2.jpeg",
+      "3.jpeg",
+      "4.jpeg"
+    ],
     "jogos": 4,
     "gols": 0,
     "assistencias": 0

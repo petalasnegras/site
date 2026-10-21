@@ -1,11 +1,11 @@
 {
-  "2026-10-17-ki-sobra": {
-    "id": "2026-10-17-ki-sobra",
+  "2026-10-17-ki-sobro": {
+    "id": "2026-10-17-ki-sobro",
     "data": "2026-10-17",
     "data_br": "17/10/2026",
     "dia_semana": "sábado",
     "hora": "10:00",
-    "adversario": "Ki Sobra",
+    "adversario": "Ki Sobro",
     "local": "R. Sd. Benedito Alves dos Santos, 60 (antigo 90) - Ponte Grande, Guarulhos - SP",
     "placar": "3 x 4",
     "gols_pro": 3,
@@ -334,7 +334,15 @@
       "9.jpeg",
       "10.jpeg",
       "11.jpeg",
-      "12.jpeg"
+      "12.jpeg",
+      "13.jpeg",
+      "14.jpeg",
+      "15.jpeg",
+      "16.jpeg",
+      "17.jpeg",
+      "18.jpeg",
+      "19.jpeg",
+      "20.jpeg"
     ]
   },
   "2026-10-10-uniao-balance": {
@@ -516,10 +524,20 @@
       "3.jpeg",
       "4.jpeg",
       "5.jpeg",
-      "6.jpeg",
       "7.jpeg",
       "8.jpeg",
-      "9.jpeg"
+      "9.jpeg",
+      "10.jpeg",
+      "11.jpeg",
+      "12.jpeg",
+      "13.jpeg",
+      "14.jpeg",
+      "15.jpeg",
+      "16.jpeg",
+      "17.jpeg",
+      "18.jpeg",
+      "19.jpeg",
+      "20.jpeg"
     ]
   },
   "2026-09-12-flor-da-palmeira-fc": {
@@ -912,7 +930,22 @@
     "fotos": [
       "1.jpeg",
       "2.jpeg",
-      "3.jpeg"
+      "3.jpeg",
+      "4.jpeg",
+      "5.jpeg",
+      "6.jpeg",
+      "7.jpeg",
+      "8.jpeg",
+      "9.jpeg",
+      "10.jpeg",
+      "13.jpeg",
+      "14.jpeg",
+      "15.jpeg",
+      "16.jpeg",
+      "17.jpeg",
+      "18.jpeg",
+      "19.jpeg",
+      "20.jpeg"
     ]
   }
 }
