@@ -9,5 +9,26 @@
     31
   ],
   "total_dias_mes": 30,
-  "eventos": {}
+  "eventos": {
+    "6": {
+      "tipo": "treino",
+      "hora": "15:30",
+      "titulo": "Treino"
+    },
+    "13": {
+      "tipo": "treino",
+      "hora": "15:30",
+      "titulo": "Treino"
+    },
+    "21": {
+      "tipo": "treino",
+      "hora": "09:30",
+      "titulo": "Treino"
+    },
+    "28": {
+      "tipo": "treino",
+      "hora": "09:30",
+      "titulo": "Treino"
+    }
+  }
 }
