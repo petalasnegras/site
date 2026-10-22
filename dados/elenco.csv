@@ -1,5 +1,5 @@
 numero;nome;posicao;foto;jogos;gols;assistencias;idade;pe;altura;titulos;formacao;fotos_jogo
-1;Henrico;Goleiro;;4;0;0;17;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg, 7.jpeg, 8.jpeg
+1;Henrico;Goleiro;;4;;;17;Destro;1.75;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg, 7.jpeg, 8.jpeg
 2;Jonas;Lateral direito;;3;0;0;18;Destro;1.65;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg
 3;Heitor;Zagueiro;;2;;;18;Destro;1.78;;;1.jpeg, 2.jpeg, 3.jpeg
 5;Enzo;Centroavante;;4;0;0;18;Destro;;;;
