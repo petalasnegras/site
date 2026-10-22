@@ -9,13 +9,14 @@ numero;nome;posicao;foto;jogos;gols;assistencias;idade;pe;altura;titulos;formaca
 9;Biel;Centroavante;;2;0;0;18;Destro;1.75;;;
 10;Rulim;Ponta;;4;1;0;17;Destro;1.65;Futsal - Campeão ACM Sub 16 (2024) | Futsal - Campeão Leg Prata Sub 16 (2025) | Futsal - JEP segundo lugar Ouro Sub 18 (2025);;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg, 6.jpeg, 7.jpeg
 11;Novaes;Centroavante;;3;1;0;18;Destro;1.72;;;
-12;Maluli;Zagueiro;;4;0;0;17;Destro;;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 6.jpeg, 7.jpeg, 8.jpeg
+12;Maluli;Zagueiro;;4;;;17;Destro;1.85;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 6.jpeg, 7.jpeg, 8.jpeg
 14;Zampronio;Lateral esquerdo;;3;;1;17;Ambidestro;1.86;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg, 5.jpeg
 24;Lipe;Centroavante;;2;1;;;;;;;
 22;Lucca;Zagueiro;;4;;;18;Canhoto;1.87;;;1.jpeg, 2.jpeg, 3.jpeg, 4.jpeg
 77;Raul;Ponta;;2;0;0;;;;;;
 7;Ayello;Meio-campista;;4;;;17;Canhoto;1.85;;;
-100;Rodrigo;Técnico;;;;;;;;;Formado em Ed. Física pela Unicsul;
-101;Dayane;Fotógrafa;;;;;;;;;@dbrframe no Instagram;
+;Rodrigo;Técnico;;;;;;;;;Formado em Ed. Física pela Unicsul;
+;Dayane;Fotógrafa;;;;;;;;;@dbrframe no Instagram;
 96;Derick;Meio-campo;;3;0;0;;;;;;
 21;Ivan;Meio-campo;;4;0;0;;;;;;
+25;Davi;Lateral esquerdo;;1;0;0;;;;;;

@@ -207,7 +207,7 @@
     "formacao": "",
     "idade": "17",
     "pe": "Destro",
-    "altura": "",
+    "altura": "1.85",
     "titulos": "",
     "fotos_jogo": [
       "1.jpeg",
@@ -313,6 +313,22 @@
     "gols": 1,
     "assistencias": 0
   },
+  "davi": {
+    "nome": "Davi",
+    "numero": 25,
+    "posicao": "Lateral esquerdo",
+    "grupo": "lateral",
+    "foto": "davi.jpeg",
+    "formacao": "",
+    "idade": "",
+    "pe": "",
+    "altura": "",
+    "titulos": "",
+    "fotos_jogo": [],
+    "jogos": 1,
+    "gols": 0,
+    "assistencias": 0
+  },
   "raul": {
     "nome": "Raul",
     "numero": 77,
@@ -345,13 +361,13 @@
     "gols": 0,
     "assistencias": 0
   },
-  "rodrigo": {
-    "nome": "Rodrigo",
+  "dayane": {
+    "nome": "Dayane",
     "numero": null,
-    "posicao": "Técnico",
+    "posicao": "Fotógrafa",
     "grupo": "tecnico",
-    "foto": "rodrigo.jpeg",
-    "formacao": "Formado em Ed. Física pela Unicsul",
+    "foto": "dayane.jpeg",
+    "formacao": "@dbrframe no Instagram",
     "idade": "",
     "pe": "",
     "altura": "",
@@ -361,13 +377,13 @@
     "gols": 0,
     "assistencias": 0
   },
-  "dayane": {
-    "nome": "Dayane",
+  "rodrigo": {
+    "nome": "Rodrigo",
     "numero": null,
-    "posicao": "Fotógrafa",
+    "posicao": "Técnico",
     "grupo": "tecnico",
-    "foto": "dayane.jpeg",
-    "formacao": "@dbrframe no Instagram",
+    "foto": "rodrigo.jpeg",
+    "formacao": "Formado em Ed. Física pela Unicsul",
     "idade": "",
     "pe": "",
     "altura": "",

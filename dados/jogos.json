@@ -148,11 +148,11 @@
       },
       {
         "nome": "Davi",
-        "numero": null,
-        "posicao": "Lateral Esquerdo",
+        "numero": 25,
+        "posicao": "Lateral esquerdo",
         "grupo": "lateral",
-        "slug": null,
-        "suporte": true,
+        "slug": "davi",
+        "suporte": false,
         "entrou_por": "Ayello",
         "saiu_para": null,
         "minuto": "45'"
