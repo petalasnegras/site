@@ -47,6 +47,9 @@ __all__ = [
 
 COLUNAS_FINANCAS = ["data", "tipo", "nome", "descricao", "valor"]
 
+ARQUIVO_CONFIG_MENSALIDADE = "config_mensalidade.json"
+ARQUIVO_MENSALIDADES = "mensalidades.json"
+
 # ====================================================================== exceções
 
 
@@ -1341,6 +1344,61 @@ class Site:
         linhas.append(nova)
         _gravar_csv(self.pasta_dados / "financas.csv", colunas, linhas, sep, COLUNAS_FINANCAS)
         return nova
+
+    # ------------------------------------------------------------ mensalidades
+    def _caminho_mensalidades(self) -> Path:
+        return self.pasta_dados / ARQUIVO_MENSALIDADES
+
+    def _caminho_config_mensalidade(self) -> Path:
+        return self.pasta_dados / ARQUIVO_CONFIG_MENSALIDADE
+
+    def obter_valor_mensalidade(self) -> float:
+        """Retorna o valor padrão atual da mensalidade (padrão R$ 50.00)."""
+        caminho = self._caminho_config_mensalidade()
+        if caminho.exists():
+            try:
+                dados = json.loads(caminho.read_text(encoding="utf-8"))
+                return float(dados.get("valor", 50.0))
+            except Exception:
+                pass
+        return 50.0
+
+    def definir_valor_mensalidade(self, valor: float) -> None:
+        """Salva o novo valor padrão da mensalidade."""
+        caminho = self._caminho_config_mensalidade()
+        caminho.write_text(json.dumps({"valor": float(valor)}, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def carregar_status_mensalidades(self) -> dict:
+        """Carrega o dicionário de status {slug_atleta: 'pago' ou 'pendente'}."""
+        caminho = self._caminho_mensalidades()
+        if caminho.exists():
+            try:
+                return json.loads(caminho.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return {}
+
+    def salvar_status_mensalidades(self, status: dict) -> None:
+        caminho = self._caminho_mensalidades()
+        caminho.write_text(json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def atualizar_status_mensalidade(self, slug_atleta: str, pago: bool, nome_atleta: str) -> None:
+        """Atualiza o status do atleta e registra na aba de finanças se mudou para pago."""
+        status = self.carregar_status_mensalidades()
+        estado_anterior = status.get(slug_atleta, "pendente")
+        novo_estado = "pago" if pago else "pendente"
+        status[slug_atleta] = novo_estado
+        self.salvar_status_mensalidades(status)
+
+        # Se mudou de pendente para pago, lança automaticamente nas finanças
+        if estado_anterior != "pago" and novo_estado == "pago":
+            valor = self.obter_valor_mensalidade()
+            self.adicionar_transacao(
+                tipo="recebita",
+                nome=nome_atleta,
+                descricao="Mensalidade",
+                valor=valor
+            )
 
 
 # ====================================================================== CLI mínima (opcional)

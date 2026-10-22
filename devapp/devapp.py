@@ -306,6 +306,7 @@ class App(tk.Tk):
         self._aba_calendario()
         self._aba_ranking()
         self._aba_financas()
+        self._aba_mensalidades()
 
     def _aba_elenco(self):
         aba = ttk.Frame(self.abas, padding=8)
@@ -510,6 +511,128 @@ class App(tk.Tk):
 
         self.txt_historico_fin.configure(state="disabled")
 
+    def _aba_mensalidades(self):
+        aba = ttk.Frame(self.abas, padding=8)
+        self.abas.add(aba, text="  Mensalidades  ")
+
+        # Topo: Configuração do valor da mensalidade e ações em lote
+        topo_frame = ttk.Frame(aba)
+        topo_frame.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(topo_frame, text="Valor da Mensalidade (R$):").pack(side="left", padx=(0, 4))
+        self.entry_val_mensalidade = ttk.Entry(topo_frame, width=8)
+        self.entry_val_mensalidade.pack(side="left", padx=(0, 8))
+        
+        ttk.Button(topo_frame, text="Atualizar Valor", command=self.salvar_valor_mensalidade_config).pack(side="left", padx=(0, 20))
+
+        ttk.Button(topo_frame, text="Marcar Selecionado como Pago", command=lambda: self.mudar_status_selecionado("pago")).pack(side="left", padx=(0, 6))
+        ttk.Button(topo_frame, text="Marcar Selecionado como Pendente", command=lambda: self.mudar_status_selecionado("pendente")).pack(side="left", padx=(0, 6))
+        ttk.Button(topo_frame, text="Marcar Todos como Pendente", command=self.marcar_todos_pendente).pack(side="right")
+
+        # Tabela de mensalidades (igual à do elenco + status)
+        quadro, self.tv_mensalidades = _tabela(aba, [
+            ("numero", "Nº", 50, "center"), 
+            ("nome", "Nome", 250, "w"), 
+            ("posicao", "Posição", 200, "w"),
+            ("status", "Status da Mensalidade", 150, "center")
+        ], altura=18)
+        quadro.pack(fill="both", expand=True)
+        
+        self.tv_mensalidades.bind("<Double-1>", lambda _e: self.alternar_status_duplo_clique())
+
+        # Carrega o valor inicial e preenche a lista
+        if self.site:
+            self.entry_val_mensalidade.insert(0, f"{self.site.obter_valor_mensalidade():.2f}")
+            self._preencher_mensalidades()
+
+    def _preencher_mensalidades(self):
+        self.tv_mensalidades.delete(*self.tv_mensalidades.get_children())
+        if self.site is None:
+            return
+        
+        try:
+            atletas = [a for a in self.site.listar_elenco() if a["grupo"] != sp.GRUPO_STAFF]
+            status_dict = self.site.carregar_status_mensalidades()
+
+            for a in atletas:
+                slug_a = a["slug"]
+                estado = status_dict.get(slug_a, "pendente")
+                status_txt = "✅ PAGO" if estado == "pago" else "❌ PENDENTE"
+                
+                self.tv_mensalidades.insert("", "end", iid=slug_a, values=(
+                    "" if a["numero"] is None else a["numero"], 
+                    a["nome"], 
+                    a["posicao"], 
+                    status_txt
+                ))
+        except Exception as e:
+            self.log(f"Erro ao carregar mensalidades: {e}", "erro")
+
+    def salvar_valor_mensalidade_config(self):
+        if self.site is None:
+            return
+        try:
+            val = float(self.entry_val_mensalidade.get().strip().replace(",", "."))
+            self.site.definir_valor_mensalidade(val)
+            self.log(f"Valor padrão da mensalidade alterado para: R$ {val:.2f}")
+            messagebox.showinfo("Sucesso", f"Valor da mensalidade atualizado para R$ {val:.2f}", parent=self)
+        except ValueError:
+            messagebox.showwarning("Aviso", "Insira um valor numérico válido.", parent=self)
+
+    def mudar_status_selecionado(self, novo_estado: str):
+        if self.site is None:
+            return
+        sel = self.tv_mensalidades.selection()
+        if not sel:
+            messagebox.showinfo("Seleção", "Selecione um atleta na lista.", parent=self)
+            return
+        
+        slug_atleta = sel[0]
+        # Descobre o nome do atleta pelo slug na lista do elenco
+        atletas = self.site.listar_elenco()
+        atleta_obj = next((a for a in atletas if a["slug"] == slug_atleta), None)
+        if not atleta_obj:
+            return
+
+        pago = (novo_estado == "pago")
+        self.site.atualizar_status_mensalidade(slug_atleta, pago, atleta_obj["nome"])
+        
+        self._preencher_mensalidades()
+        # Atualiza também a aba de finanças caso esteja aberta
+        if hasattr(self, "txt_historico_fin"):
+            self.atualizar_historico_financas()
+        
+        self.log(f"Mensalidade de {atleta_obj['nome']} alterada para: {novo_estado.upper()}")
+
+    def alternar_status_duplo_clique(self):
+        if self.site is None:
+            return
+        sel = self.tv_mensalidades.selection()
+        if not sel:
+            return
+        slug_atleta = sel[0]
+        status_dict = self.site.carregar_status_mensalidades()
+        estado_atual = status_dict.get(slug_atleta, "pendente")
+        
+        # Inverte o estado atual
+        novo_estado = "pendente" if estado_atual == "pago" else "pago"
+        self.mudar_status_selecionado(novo_estado)
+
+    def marcar_todos_pendente(self):
+        if self.site is None:
+            return
+        if not messagebox.askyesno("Confirmação", "Deseja realmente marcar a mensalidade de TODOS os atletas como PENDENTE?", parent=self):
+            return
+        
+        status_dict = {}
+        atletas = [a for a in self.site.listar_elenco() if a["grupo"] != sp.GRUPO_STAFF]
+        for a in atletas:
+            status_dict[a["slug"]] = "pendente"
+        
+        self.site.salvar_status_mensalidades(status_dict)
+        self._preencher_mensalidades()
+        self.log("Todas as mensalidades foram redefinidas para PENDENTE.")
+
     def _montar_rodape(self):
         rodape = ttk.Frame(self, padding=(10, 6))
         rodape.pack(fill="both")
@@ -601,9 +724,13 @@ class App(tk.Tk):
         self._preencher_elenco()
         self._preencher_jogos()
         self._preencher_ranking()
-        # Adicione a linha abaixo para carregar as finanças assim que abrir ou recarregar o app:
         if hasattr(self, "txt_historico_fin"):
             self.atualizar_historico_financas()
+        if hasattr(self, "tv_mensalidades"):
+            self._preencher_mensalidades()
+            if self.site:
+                self.entry_val_mensalidade.delete(0, "end")
+                self.entry_val_mensalidade.insert(0, f"{self.site.obter_valor_mensalidade():.2f}")
 
     def _preencher_elenco(self):
         self.tv_elenco.delete(*self.tv_elenco.get_children())
