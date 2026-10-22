@@ -45,6 +45,8 @@ __all__ = [
     "slug", "sem_acento",
 ]
 
+COLUNAS_FINANCAS = ["data", "tipo", "nome", "descricao", "valor"]
+
 # ====================================================================== exceções
 
 
@@ -1311,6 +1313,34 @@ class Site:
         elenco = self.atualizar_elenco()
         jogos = self.atualizar_jogos(hoje)
         return {"elenco": elenco, "jogos": jogos, "avisos": elenco["avisos"] + jogos["avisos"]}
+
+    # ------------------------------------------------------------ finanças
+    def _tabela_financas(self):
+        arquivo = self.pasta_dados / "financas.csv"
+        if not arquivo.exists():
+            _gravar_csv(arquivo, COLUNAS_FINANCAS, [], ",", COLUNAS_FINANCAS)
+        return _ler_csv(arquivo)
+
+    def listar_financas(self) -> List[dict]:
+        try:
+            _, linhas, _ = self._tabela_financas()
+            return linhas
+        except Exception:
+            return []
+
+    def adicionar_transacao(self, tipo: str, nome: str, descricao: str, valor: float, data: str = "") -> dict:
+        colunas, linhas, sep = self._tabela_financas()
+        data_transacao = data if data else date.today().strftime("%d/%m/%Y")
+        nova = {
+            "data": data_transacao,
+            "tipo": tipo,
+            "nome": nome,
+            "descricao": descricao,
+            "valor": f"{valor:.2f}"
+        }
+        linhas.append(nova)
+        _gravar_csv(self.pasta_dados / "financas.csv", colunas, linhas, sep, COLUNAS_FINANCAS)
+        return nova
 
 
 # ====================================================================== CLI mínima (opcional)

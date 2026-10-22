@@ -305,6 +305,7 @@ class App(tk.Tk):
         self._aba_jogos()
         self._aba_calendario()
         self._aba_ranking()
+        self._aba_financas()
 
     def _aba_elenco(self):
         aba = ttk.Frame(self.abas, padding=8)
@@ -393,6 +394,121 @@ class App(tk.Tk):
         barra.pack(fill="x", pady=(8, 0))
         ttk.Label(barra, text="Os números vêm da aba Elenco.", foreground="#555").pack(side="left")
         ttk.Button(barra, text="Atualizar ranking.html", command=self.atualizar_ranking).pack(side="right")
+
+    def _aba_financas(self):
+        aba = ttk.Frame(self.abas, padding=8)
+        self.abas.add(aba, text="  Finanças  ")
+
+        # Formulário organizado com campos separados
+        form_frame = ttk.LabelFrame(aba, text=" Registrar Movimentação ", padding=10)
+        form_frame.pack(fill="x", pady=(0, 10))
+
+        # Linha 1 do formulário
+        ttk.Label(form_frame, text="Tipo:").grid(row=0, column=0, sticky="w", padx=5, pady=3)
+        self.var_tipo_fin = tk.StringVar(value="Recebido")
+        cb_tipo = ttk.Combobox(form_frame, values=["Recebido", "Gasto"], textvariable=self.var_tipo_fin, width=12, state="readonly")
+        cb_tipo.grid(row=0, column=1, sticky="w", padx=5, pady=3)
+
+        ttk.Label(form_frame, text="Data (DD/MM/AAAA):").grid(row=0, column=2, sticky="w", padx=5, pady=3)
+        self.entry_data_fin = ttk.Entry(form_frame, width=12)
+        self.entry_data_fin.grid(row=0, column=3, sticky="w", padx=5, pady=3)
+        self.entry_data_fin.insert(0, date.today().strftime("%d/%m/%Y")) # Preenche com a data de hoje por padrão
+
+        ttk.Label(form_frame, text="Valor (R$):").grid(row=0, column=4, sticky="w", padx=5, pady=3)
+        self.entry_valor = ttk.Entry(form_frame, width=12)
+        self.entry_valor.grid(row=0, column=5, sticky="w", padx=5, pady=3)
+
+        # Linha 2 do formulário
+        ttk.Label(form_frame, text="Quem (Elenco/Fora):").grid(row=1, column=0, sticky="w", padx=5, pady=3)
+        self.entry_nome_fin = ttk.Entry(form_frame, width=22)
+        self.entry_nome_fin.grid(row=1, column=1, columnspan=2, sticky="w", padx=5, pady=3)
+
+        ttk.Label(form_frame, text="Descrição:").grid(row=1, column=3, sticky="w", padx=5, pady=3)
+        self.entry_desc_fin = ttk.Entry(form_frame, width=35)
+        self.entry_desc_fin.grid(row=1, column=4, columnspan=2, sticky="w", padx=5, pady=3)
+
+        ttk.Button(form_frame, text="Salvar Transação", command=self.salvar_transacao).grid(row=1, column=6, padx=10, pady=3)
+
+        # Histórico formatado em texto (tipo log)
+        log_frame = ttk.LabelFrame(aba, text=" Histórico Salvo de Caixa ", padding=10)
+        log_frame.pack(fill="both", expand=True)
+
+        self.txt_historico_fin = ScrolledText(log_frame, state="disabled", wrap="word", height=15)
+        self.txt_historico_fin.pack(fill="both", expand=True)
+        
+        self.atualizar_historico_financas()
+
+    def salvar_transacao(self):
+        if self.site is None:
+            return self.escolher_pasta()
+        
+        tipo = self.var_tipo_fin.get()
+        data_txt = self.entry_data_fin.get().strip()
+        nome = self.entry_nome_fin.get().strip()
+        descricao = self.entry_desc_fin.get().strip()
+        valor_str = self.entry_valor.get().strip().replace(",", ".")
+
+        if not nome:
+            messagebox.showwarning("Aviso", "Informe quem enviou ou o responsável pelo gasto.", parent=self)
+            return
+        
+        try:
+            valor = float(valor_str)
+        except ValueError:
+            messagebox.showwarning("Aviso", "Valor inválido. Use números (ex: 50.00).", parent=self)
+            return
+
+        tipo_cod = "recebita" if tipo == "Recebido" else "gasto"
+        
+        # Salva no arquivo CSV
+        self.site.adicionar_transacao(tipo_cod, nome, descricao, valor, data_txt)
+        
+        # Limpa os campos de digitação (mantém a data atual opcionalmente)
+        self.entry_nome_fin.delete(0, "end")
+        self.entry_desc_fin.delete(0, "end")
+        self.entry_valor.delete(0, "end")
+
+        # Atualiza a tela e o log geral
+        self.atualizar_historico_financas()
+        self.log(f"Financeiro salvo: [{tipo.upper()}] {nome} - R$ {valor:.2f}")
+
+    def atualizar_historico_financas(self):
+        if self.site is None:
+            return
+        
+        transacoes = self.site.listar_financas()
+        
+        self.txt_historico_fin.configure(state="normal")
+        self.txt_historico_fin.delete("1.0", "end")
+
+        if not transacoes:
+            self.txt_historico_fin.insert("end", "Nenhum histórico financeiro encontrado. (Arquivo vazio)\n")
+        else:
+            # Cabeçalho formatado para acomodar os novos campos
+            header = f"{'DATA':<12} | {'TIPO':<10} | {'QUEM':<20} | {'DESCRIÇÃO':<25} | {'VALOR':<10}\n"
+            self.txt_historico_fin.insert("end", header)
+            self.txt_historico_fin.insert("end", "-" * 85 + "\n")
+            
+            total_caixa = 0.0
+            for t in transacoes:
+                tipo_txt = "ENTRADA" if t.get("tipo") == "recebita" else "SAÍDA"
+                val = float(t.get("valor", 0))
+                if t.get("tipo") == "recebita":
+                    total_caixa += val
+                else:
+                    total_caixa -= val
+
+                data = t.get('data', '')
+                nome = t.get('nome', '')
+                desc = t.get('descricao', '')
+
+                linha = f"{data:<12} | {tipo_txt:<10} | {nome:<20} | {desc:<25} | R$ {val:>7.2f}\n"
+                self.txt_historico_fin.insert("end", linha)
+            
+            self.txt_historico_fin.insert("end", "-" * 85 + "\n")
+            self.txt_historico_fin.insert("end", f"SALDO ATUAL EM CAIXA: R$ {total_caixa:.2f}\n")
+
+        self.txt_historico_fin.configure(state="disabled")
 
     def _montar_rodape(self):
         rodape = ttk.Frame(self, padding=(10, 6))
@@ -485,6 +601,9 @@ class App(tk.Tk):
         self._preencher_elenco()
         self._preencher_jogos()
         self._preencher_ranking()
+        # Adicione a linha abaixo para carregar as finanças assim que abrir ou recarregar o app:
+        if hasattr(self, "txt_historico_fin"):
+            self.atualizar_historico_financas()
 
     def _preencher_elenco(self):
         self.tv_elenco.delete(*self.tv_elenco.get_children())
