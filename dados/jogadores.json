@@ -377,6 +377,22 @@
     "gols": 0,
     "assistencias": 0
   },
+  "giovanna": {
+    "nome": "Giovanna",
+    "numero": null,
+    "posicao": "Auxiliar técnico",
+    "grupo": "tecnico",
+    "foto": "giovanna.jpeg",
+    "formacao": "",
+    "idade": "17",
+    "pe": "",
+    "altura": "",
+    "titulos": "",
+    "fotos_jogo": [],
+    "jogos": 0,
+    "gols": 0,
+    "assistencias": 0
+  },
   "rodrigo": {
     "nome": "Rodrigo",
     "numero": null,

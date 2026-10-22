@@ -351,7 +351,14 @@ class App(tk.Tk):
 
         pasta = self._config().get("pasta", "")
         if pasta and Path(pasta).is_dir():
-            self.abrir_site(pasta)
+            # Abre a pasta e joga o carregamento pesado para um micro-atraso (0.1s)
+            self.site = sp.Site(pasta)
+            self.var_pasta.set(str(self.site.raiz))
+            self.log(f"Site aberto: {self.site.raiz}")
+            self.after(100, self.recarregar_listas)
+            ultimo = self._config().get("calendario", "")
+            if ultimo and Path(ultimo).is_file():
+                self.after(150, lambda: self._carregar_calendario(ultimo))
         else:
             self.after(200, self.escolher_pasta)
 
@@ -371,9 +378,7 @@ class App(tk.Tk):
         # 2. Ações do sistema
         ttk.Button(topo, text="🔄 Recarregar", command=self.recarregar).pack(side="left", padx=(0, 4))
         ttk.Button(topo, text="🌐 Ver no Navegador", command=self.abrir_navegador).pack(side="left", padx=(0, 4))
-        
-        if hasattr(self, "gerar_backup_zip"):
-            ttk.Button(topo, text="📦 Gerar Zip", command=self.gerar_backup_zip).pack(side="left", padx=(0, 4))
+        ttk.Button(topo, text="📦 Gerar Zip", command=self.fazer_backup).pack(side="left", padx=(0, 4))
 
         # Divisor visual antes do botão de fechar
         ttk.Separator(topo, orient="vertical").pack(side="left", fill="y", padx=8)
@@ -839,6 +844,16 @@ class App(tk.Tk):
 
         self.txt_historico_fin.configure(state="disabled")
 
+    def fazer_backup(self):
+        if self.site is None:
+            return self.escolher_pasta()
+        
+        # Chama a função de backup direto da biblioteca site_petalas (self.site)
+        ok, caminho = self._executar("Gerando backup em .zip...", self.site.gerar_backup)
+        if ok and caminho:
+            self.log(f"Backup gerado com sucesso: {Path(caminho).name}")
+            messagebox.showinfo("Backup Concluído", f"Backup criado com sucesso em:\n{caminho}", parent=self)
+
     def _aba_mensalidades(self):
         aba = ttk.Frame(self.abas, padding=8)
         self.abas.add(aba, text="  Mensalidades  ")
@@ -854,6 +869,7 @@ class App(tk.Tk):
         ttk.Button(topo_frame, text="Atualizar Valor", command=self.salvar_valor_mensalidade_config).pack(side="left", padx=(0, 20))
         ttk.Button(topo_frame, text="Marcar como Pago", command=lambda: self.mudar_status_selecionado("pago")).pack(side="left", padx=(0, 6))
         ttk.Button(topo_frame, text="Marcar como Pendente", command=lambda: self.mudar_status_selecionado("pendente")).pack(side="left", padx=(0, 6))
+        ttk.Button(topo_frame, text="Atualizar mês", command=self.marcar_todos_pendente).pack(side="left", padx=(0, 6)) # <--- ADICIONE ESTA LINHA
 
         # UTILIZANDO A FUNÇÃO PADRÃO DE BUSCA AQUI:
         self.var_busca_mensalidades = self._criar_barra_busca(aba, self._preencher_mensalidades)
@@ -1253,6 +1269,8 @@ class App(tk.Tk):
             self.abrir_site(str(self.site.raiz))
         
         self._atualizar_cards_dashboard()
+        self._carregar_foto_dashboard()
+        self._preencher_treinos()
 
     def recarregar_listas(self):
         self._preencher_elenco()
