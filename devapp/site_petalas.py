@@ -34,6 +34,7 @@ import html
 import json
 import re
 import unicodedata
+import zipfile
 from datetime import date, datetime
 from io import StringIO
 from pathlib import Path
@@ -1399,6 +1400,41 @@ class Site:
                 descricao="Mensalidade",
                 valor=valor
             )
+
+    def gerar_backup(self, pasta_destino: Union[str, Path, None] = None) -> Path:
+        """
+        Cria um arquivo .zip com toda a pasta de dados (incluindo subpastas) e as imagens do site.
+        Retorna o caminho do arquivo zip gerado.
+        """
+        data_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nome_zip = f"backup_petalas_{data_str}.zip"
+        
+        destino_dir = Path(pasta_destino) if pasta_destino else self.raiz
+        caminho_zip = destino_dir / nome_zip
+
+        with zipfile.ZipFile(caminho_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # 1. Salvar pasta de dados e todas as suas subpastas recursivamente
+            if self.pasta_dados.exists():
+                for arq in self.pasta_dados.rglob("*"):
+                    if arq.is_file():
+                        # Mantém a estrutura de caminhos relativos à pasta de dados
+                        rel_path = arq.relative_to(self.pasta_dados.parent)
+                        zipf.write(arq, arcname=rel_path)
+
+            # 2. Salvar imagens (jogadores, perfil, jogos)
+            pastas_imagens = [
+                self.pasta_fotos_jogadores,
+                self.pasta_fotos_perfil,
+                self.pasta_fotos_jogos
+            ]
+            for pasta in pastas_imagens:
+                if pasta.exists():
+                    for arq in pasta.rglob("*"):
+                        if arq.is_file():
+                            rel_path = arq.relative_to(self.raiz)
+                            zipf.write(arq, arcname=rel_path)
+
+        return caminho_zip
 
 
 # ====================================================================== CLI mínima (opcional)

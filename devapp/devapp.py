@@ -297,6 +297,7 @@ class App(tk.Tk):
         ttk.Button(topo, text="Escolher...", command=self.escolher_pasta).pack(side="left")
         ttk.Button(topo, text="Recarregar", command=self.recarregar).pack(side="left", padx=(6, 0))
         ttk.Button(topo, text="Ver no navegador", command=self.abrir_navegador).pack(side="left", padx=(6, 0))
+        ttk.Button(topo, text="Gerar Backup (.zip)", command=self.fazer_backup).pack(side="left", padx=(6, 0))
 
     def _montar_abas(self):
         self.abas = ttk.Notebook(self)
@@ -1198,6 +1199,15 @@ class App(tk.Tk):
             return
         ok, _ = self._executar("calendario.html atualizado.", gerar_calendario_html, self.site, self.dados_cal)
         return ok
+
+    def fazer_backup(self):
+        if self.site is None:
+            return self.escolher_pasta()
+        
+        ok, caminho = self._executar("Gerando backup em .zip...", self.site.gerar_backup)
+        if ok and caminho:
+            self.log(f"Backup gerado com sucesso: {caminho.name}")
+            messagebox.showinfo("Backup Concluído", f"Backup criado com sucesso em:\n{caminho}", parent=self)
 
 
 def main():
