@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 """
-app_petalas - interface gráfica (tkinter) para a biblioteca site_petalas.
+devapp - gerenciador único do site Pétalas Negras (elenco, jogos, calendário, ranking e servidor local).
 
 Coloque este arquivo na mesma pasta do site_petalas.py e execute:
 
-    python app_petalas.py
+    python devapp.py
 
 Na primeira vez, escolha a pasta do site (a que tem index.html e a pasta dados/ com os CSVs).
-A pasta escolhida fica salva em ~/.petalas_gui.json.
+A pasta escolhida (e o último JSON do calendário) ficam salvos em ~/.petalas_gui.json.
 
+Substitui: app_petalas.py, ranking.py, calendario.py e test.py.
 Só usa a biblioteca padrão (Python 3.8+).
 """
 
 from __future__ import annotations
 
+import functools
+import html
+import http.server
 import json
+import re
 import sys
+import threading
 import tkinter as tk
+import webbrowser
 from datetime import date
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -29,14 +36,23 @@ except ImportError:  # pragma: no cover
     _r = tk.Tk()
     _r.withdraw()
     messagebox.showerror("site_petalas não encontrado",
-                         "Coloque o app_petalas.py na mesma pasta do site_petalas.py.")
+                         "Coloque o devapp.py na mesma pasta do site_petalas.py.")
     raise SystemExit(1)
 
 CONFIG = Path.home() / ".petalas_gui.json"
+PORTA = 8000
 
 POSICOES = ["Goleiro", "Zagueiro", "Lateral direito", "Lateral esquerdo", "Volante", "Meio-campista",
             "Ponta", "Centroavante", "Técnico", "Preparador físico", "Auxiliar técnico", "Fotógrafo"]
 PES = ["", "Destro", "Canhoto", "Ambidestro"]
+TIPOS_EVENTO = ["jogo", "treino"]
+
+# categorias do ranking: (campo, rótulo, singular, plural, marcador no ranking.html)
+RANKINGS = [
+    ("gols", "Artilharia", "Gol", "Gols", "RANKING_ARTILHARIA"),
+    ("assistencias", "Assistências", "Assistência", "Assistências", "RANKING_ASSISTENCIAS"),
+    ("jogos", "Jogos", "Jogo", "Jogos", "RANKING_JOGOS"),
+]
 
 
 # ====================================================================== utilidades de interface
@@ -57,7 +73,7 @@ def _tabela(pai, colunas, altura=14):
                       selectmode="browse", height=altura)
     for id_, titulo, largura, ancora in colunas:
         tv.heading(id_, text=titulo)
-        tv.column(id_, width=largura, anchor=ancora, stretch=(id_ in ("nome", "adversario")))
+        tv.column(id_, width=largura, anchor=ancora, stretch=(id_ in ("nome", "adversario", "titulo")))
     barra = ttk.Scrollbar(quadro, orient="vertical", command=tv.yview)
     tv.configure(yscrollcommand=barra.set)
     tv.pack(side="left", fill="both", expand=True)
@@ -133,6 +149,115 @@ class Dialogo(tk.Toplevel):
             self.destroy()
 
 
+# ====================================================================== ranking (HTML a partir do elenco)
+
+
+def _ranking_ordenado(atletas, campo):
+    com_valor = [a for a in atletas if a["grupo"] != sp.GRUPO_STAFF and a.get(campo, 0) > 0]
+    com_valor.sort(key=lambda a: (a.get(campo, 0), a.get("jogos", 0)), reverse=True)
+    return com_valor
+
+
+def _posicoes_ranking(ordenados, campo):
+    """[(posição, atleta)] - empates dividem a mesma posição."""
+    saida, pos, ultimo = [], 0, None
+    for a in ordenados:
+        if a[campo] != ultimo:
+            pos += 1
+            ultimo = a[campo]
+        saida.append((pos, a))
+    return saida
+
+
+def _html_ranking(atletas, campo, singular, plural) -> str:
+    ordenados = _ranking_ordenado(atletas, campo)
+    if not ordenados:
+        return '<div class="vazio">Nenhum registro para esta categoria.</div>'
+    elementos, ultimo = [], None
+    for pos, a in _posicoes_ranking(ordenados, campo):
+        valor = a[campo]
+        if valor != ultimo:
+            ultimo = valor
+            elementos.append(f'<div class="ranking-divisor-grupo">{valor} {singular if valor == 1 else plural}</div>')
+        nome = html.escape(a["nome"], quote=True)
+        camisa = f'<span class="atleta-numero">#{a["numero"]}</span>' if a["numero"] is not None else ""
+        foto = html.escape("imagens/jogadores/" + a["foto"], quote=True)
+        elementos.append(f'''<a class="ranking-card-item" href="jogador.html?id={a["slug"]}">
+  <div class="ranking-card-esquerda">
+    <span class="ranking-posicao">{pos}º</span>
+    <img src="{foto}" alt="{nome}" class="ranking-foto-mini" onerror="this.src='imagens/logo.jpeg'">
+    <div class="ranking-info-atleta">
+      <div class="ranking-nome-linha">
+        <strong>{nome}</strong>
+        {camisa}
+      </div>
+      <span class="ranking-posicao-sub">{html.escape(a["posicao"] or "-")}</span>
+    </div>
+  </div>
+  <div class="ranking-stat-valor">{valor}</div>
+</a>''')
+    return "\n".join(elementos)
+
+
+def gerar_ranking_html(site: "sp.Site", atletas) -> bool:
+    """Regrava os blocos de ranking.html. Devolve True se o arquivo mudou."""
+    arquivo = site.raiz / "ranking.html"
+    if not arquivo.exists():
+        raise sp.ErroArquivo(f"não encontrei ranking.html em {site.raiz}.")
+    texto = original = arquivo.read_text(encoding="utf-8")
+    for campo, _, singular, plural, marca in RANKINGS:
+        padrao = re.compile(rf"<!-- {marca}_INICIO -->.*?<!-- {marca}_FIM -->", re.DOTALL)
+        if not padrao.search(texto):
+            raise sp.ErroArquivo(f"ranking.html não tem os marcadores <!-- {marca}_INICIO --> e "
+                                 f"<!-- {marca}_FIM -->.")
+        novo = f"<!-- {marca}_INICIO -->\n{_html_ranking(atletas, campo, singular, plural)}\n<!-- {marca}_FIM -->"
+        texto = padrao.sub(lambda _m, n=novo: n, texto, count=1)
+    if texto != original:
+        arquivo.write_text(texto, encoding="utf-8")
+        return True
+    return False
+
+
+# ====================================================================== calendário (JSON mensal -> HTML)
+
+
+def _html_grade_calendario(dados: dict) -> str:
+    saida = []
+    for dia in dados.get("offset_dias_anteriores", []):
+        saida.append(f'          <div class="dia-celula outro-mes"><span class="num-dia">{dia}</span></div>')
+    eventos = dados.get("eventos", {})
+    for d in range(1, int(dados.get("total_dias_mes", 31)) + 1):
+        bloco = f'          <div class="dia-celula">\n            <span class="num-dia">{d}</span>'
+        ev = eventos.get(str(d))
+        if ev:
+            classe = "evento-jogo" if ev.get("tipo") == "jogo" else "evento-treino"
+            bloco += (f'\n            <div class="evento {classe}">\n              '
+                      f'<strong>{html.escape(ev.get("hora", ""))}</strong> {html.escape(ev.get("titulo", ""))}\n'
+                      f'            </div>')
+        saida.append(bloco + "\n          </div>")
+    return "\n".join(saida)
+
+
+def gerar_calendario_html(site: "sp.Site", dados: dict) -> None:
+    arquivo = site.raiz / "calendario.html"
+    if not arquivo.exists():
+        raise sp.ErroArquivo(f"não encontrei calendario.html em {site.raiz}.")
+    texto = arquivo.read_text(encoding="utf-8")
+    titulo = f'<h2>{html.escape(dados.get("mes_ano", "Calendário"))}</h2>'
+    trocas = [
+        (r"<!-- TITULO_MES:INICIO -->.*?<!-- TITULO_MES:FIM -->",
+         f"<!-- TITULO_MES:INICIO -->\n          {titulo}\n          <!-- TITULO_MES:FIM -->"),
+        (r"<!-- CALENDARIO_INICIO -->.*?<!-- CALENDARIO_FIM -->",
+         f"<!-- CALENDARIO_INICIO -->\n{_html_grade_calendario(dados)}\n          <!-- CALENDARIO_FIM -->"),
+    ]
+    for padrao, novo in trocas:
+        regex = re.compile(padrao, re.DOTALL)
+        if not regex.search(texto):
+            raise sp.ErroArquivo("calendario.html não tem os marcadores TITULO_MES / CALENDARIO.")
+        texto = regex.sub(lambda _m, n=novo: n, texto, count=1)
+    arquivo.write_text(texto, encoding="utf-8")
+
+
 # ====================================================================== aplicativo
 
 
@@ -140,18 +265,23 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Pétalas Negras - gerenciador do site")
-        self.geometry("1000x720")
-        self.minsize(860, 560)
+        self.geometry("1000x740")
+        self.minsize(860, 580)
         self.site = None
+        self.servidor = None
+        self.caminho_cal = None
+        self.dados_cal = {}
         self.var_pasta = tk.StringVar()
         self.var_auto = tk.BooleanVar(value=True)
+        self.var_ranking = tk.StringVar(value=RANKINGS[0][0])
 
         self._montar_topo()
         self._montar_abas()
         self._montar_rodape()
+        self.protocol("WM_DELETE_WINDOW", self._fechar)
 
-        pasta = self._pasta_salva()
-        if pasta:
+        pasta = self._config().get("pasta", "")
+        if pasta and Path(pasta).is_dir():
             self.abrir_site(pasta)
         else:
             self.after(200, self.escolher_pasta)
@@ -166,12 +296,15 @@ class App(tk.Tk):
             side="left", fill="x", expand=True, padx=8)
         ttk.Button(topo, text="Escolher...", command=self.escolher_pasta).pack(side="left")
         ttk.Button(topo, text="Recarregar", command=self.recarregar).pack(side="left", padx=(6, 0))
+        ttk.Button(topo, text="Ver no navegador", command=self.abrir_navegador).pack(side="left", padx=(6, 0))
 
     def _montar_abas(self):
         self.abas = ttk.Notebook(self)
         self.abas.pack(fill="both", expand=True, padx=10)
         self._aba_elenco()
         self._aba_jogos()
+        self._aba_calendario()
+        self._aba_ranking()
 
     def _aba_elenco(self):
         aba = ttk.Frame(self.abas, padding=8)
@@ -217,6 +350,50 @@ class App(tk.Tk):
         ttk.Button(barra, text="Sincronizar fotos dos jogos", command=self.sincronizar_fotos_jogos).pack(
             side="right")
 
+    def _aba_calendario(self):
+        aba = ttk.Frame(self.abas, padding=8)
+        self.abas.add(aba, text="  Calendário  ")
+
+        topo = ttk.Frame(aba)
+        topo.pack(fill="x", pady=(0, 8))
+        ttk.Button(topo, text="Abrir JSON do mês...", command=self.abrir_json_calendario).pack(side="left")
+        ttk.Button(topo, text="Novo mês...", command=self.novo_mes).pack(side="left", padx=6)
+        self.lbl_cal = ttk.Label(topo, text="Nenhum arquivo selecionado", foreground="#b00020")
+        self.lbl_cal.pack(side="left", padx=8)
+
+        quadro, self.tv_cal = _tabela(aba, [
+            ("dia", "Dia", 60, "center"), ("tipo", "Tipo", 90, "center"),
+            ("hora", "Hora", 70, "center"), ("titulo", "Descrição / Adversário", 380, "w")])
+        quadro.pack(fill="both", expand=True)
+        self.tv_cal.bind("<Double-1>", lambda _e: self.editar_evento())
+
+        barra = ttk.Frame(aba)
+        barra.pack(fill="x", pady=(8, 0))
+        for texto, cmd in (("Adicionar...", self.adicionar_evento), ("Editar...", self.editar_evento),
+                           ("Remover", self.remover_evento)):
+            ttk.Button(barra, text=texto, command=cmd).pack(side="left", padx=(0, 6))
+        ttk.Button(barra, text="Atualizar calendario.html", command=self.atualizar_calendario).pack(side="right")
+
+    def _aba_ranking(self):
+        aba = ttk.Frame(self.abas, padding=8)
+        self.abas.add(aba, text="  Ranking  ")
+
+        topo = ttk.Frame(aba)
+        topo.pack(fill="x", pady=(0, 8))
+        for campo, rotulo, *_ in RANKINGS:
+            ttk.Radiobutton(topo, text=rotulo, value=campo, variable=self.var_ranking,
+                            command=self._preencher_ranking).pack(side="left", padx=(0, 12))
+
+        quadro, self.tv_ranking = _tabela(aba, [
+            ("pos", "Pos.", 60, "center"), ("nome", "Nome", 260, "w"), ("posicao", "Posição", 170, "w"),
+            ("valor", "Total", 80, "center")])
+        quadro.pack(fill="both", expand=True)
+
+        barra = ttk.Frame(aba)
+        barra.pack(fill="x", pady=(8, 0))
+        ttk.Label(barra, text="Os números vêm da aba Elenco.", foreground="#555").pack(side="left")
+        ttk.Button(barra, text="Atualizar ranking.html", command=self.atualizar_ranking).pack(side="right")
+
     def _montar_rodape(self):
         rodape = ttk.Frame(self, padding=(10, 6))
         rodape.pack(fill="both")
@@ -255,7 +432,7 @@ class App(tk.Tk):
             return False, None
         try:
             resultado = func(*args, **kwargs)
-        except (sp.ErroDados, OSError) as e:
+        except (sp.ErroDados, OSError, ValueError) as e:
             self._erro(e)
             return False, None
         self.log(descricao)
@@ -266,15 +443,22 @@ class App(tk.Tk):
         if self.var_auto.get():
             self.atualizar_site()
 
-    # ------------------------------------------------------------ pasta do site
+    # ------------------------------------------------------------ configuração e pasta do site
 
     @staticmethod
-    def _pasta_salva():
+    def _config() -> dict:
         try:
-            pasta = json.loads(CONFIG.read_text(encoding="utf-8")).get("pasta", "")
-            return pasta if pasta and Path(pasta).is_dir() else ""
+            return json.loads(CONFIG.read_text(encoding="utf-8"))
         except (OSError, ValueError):
-            return ""
+            return {}
+
+    def _salvar_config(self, **novos):
+        dados = self._config()
+        dados.update(novos)
+        try:
+            CONFIG.write_text(json.dumps(dados), encoding="utf-8")
+        except OSError:
+            pass
 
     def escolher_pasta(self):
         pasta = filedialog.askdirectory(parent=self, title="Escolha a pasta do site (com index.html)",
@@ -283,14 +467,15 @@ class App(tk.Tk):
             self.abrir_site(pasta)
 
     def abrir_site(self, pasta: str):
+        self._parar_servidor()
         self.site = sp.Site(pasta)
         self.var_pasta.set(str(self.site.raiz))
-        try:
-            CONFIG.write_text(json.dumps({"pasta": str(self.site.raiz)}), encoding="utf-8")
-        except OSError:
-            pass
+        self._salvar_config(pasta=str(self.site.raiz))
         self.log(f"Site aberto: {self.site.raiz} (dados em {self.site.pasta_dados})")
         self.recarregar_listas()
+        ultimo = self._config().get("calendario", "")
+        if ultimo and Path(ultimo).is_file():
+            self._carregar_calendario(ultimo)
 
     def recarregar(self):
         if self.site is not None:
@@ -299,6 +484,7 @@ class App(tk.Tk):
     def recarregar_listas(self):
         self._preencher_elenco()
         self._preencher_jogos()
+        self._preencher_ranking()
 
     def _preencher_elenco(self):
         self.tv_elenco.delete(*self.tv_elenco.get_children())
@@ -327,6 +513,19 @@ class App(tk.Tk):
         except sp.ErroDados as e:
             self.log(f"Erro ao ler os jogos: {e}", "erro")
 
+    def _preencher_ranking(self):
+        self.tv_ranking.delete(*self.tv_ranking.get_children())
+        if self.site is None:
+            return
+        campo = self.var_ranking.get()
+        try:
+            ordenados = _ranking_ordenado(self.site.listar_elenco(), campo)
+        except sp.ErroDados as e:
+            self.log(f"Erro ao ler o elenco: {e}", "erro")
+            return
+        for i, (pos, a) in enumerate(_posicoes_ranking(ordenados, campo)):
+            self.tv_ranking.insert("", "end", iid=str(i), values=(f"{pos}º", a["nome"], a["posicao"], a[campo]))
+
     def _selecionado(self, tv, o_que):
         sel = tv.selection()
         if not sel:
@@ -337,8 +536,9 @@ class App(tk.Tk):
     # ------------------------------------------------------------ atualizar páginas
 
     def atualizar_site(self):
-        ok, rel = self._executar("Gerando páginas e JSONs...", self.site.atualizar_tudo
-                                 if self.site else (lambda: None))
+        """Regrava elenco.html, jogos.html, index.html, JSONs e (se existir) ranking.html."""
+        ok, rel = self._executar("Gerando páginas e JSONs...",
+                                 self.site.atualizar_tudo if self.site else None)
         if not ok or rel is None:
             return
         e, j = rel["elenco"], rel["jogos"]
@@ -346,6 +546,51 @@ class App(tk.Tk):
                  f"{j['jogos']} jogos ({j['proximos']} próximos, {j['realizados']} realizados).")
         for aviso in rel["avisos"]:
             self.log(f"Aviso: {aviso}", "aviso")
+        if (self.site.raiz / "ranking.html").exists():
+            self._gerar_ranking(silencioso=True)
+
+    def _gerar_ranking(self, silencioso=False):
+        try:
+            gerar_ranking_html(self.site, self.site.listar_elenco())
+        except (sp.ErroDados, OSError) as e:
+            if silencioso:
+                self.log(f"Aviso: ranking.html não atualizado ({e})", "aviso")
+            else:
+                self._erro(e)
+            return False
+        self.log("ranking.html atualizado.")
+        return True
+
+    def atualizar_ranking(self):
+        if self.site is None:
+            return self.escolher_pasta()
+        self._gerar_ranking()
+
+    # ------------------------------------------------------------ servidor local
+
+    def abrir_navegador(self):
+        if self.site is None:
+            return self.escolher_pasta()
+        if self.servidor is None:
+            try:
+                manipulador = functools.partial(http.server.SimpleHTTPRequestHandler,
+                                                directory=str(self.site.raiz))
+                self.servidor = http.server.ThreadingHTTPServer(("127.0.0.1", PORTA), manipulador)
+            except OSError as e:
+                return self._erro(OSError(f"não consegui abrir a porta {PORTA}: {e}"))
+            threading.Thread(target=self.servidor.serve_forever, daemon=True).start()
+            self.log(f"Servidor local iniciado em http://localhost:{PORTA}")
+        webbrowser.open(f"http://localhost:{PORTA}")
+
+    def _parar_servidor(self):
+        if self.servidor is not None:
+            self.servidor.shutdown()
+            self.servidor.server_close()
+            self.servidor = None
+
+    def _fechar(self):
+        self._parar_servidor()
+        self.destroy()
 
     # ------------------------------------------------------------ elenco
 
@@ -394,8 +639,7 @@ class App(tk.Tk):
         valores["foto"] = p["foto"] if p["foto"] != sp._foto_padrao(p["nome"]) else ""
 
         def salvar(v):
-            campos = dict(v)
-            ok2, _ = self._executar(f"Atualizado: {v['nome']}", self.site.editar_pessoa, nome, **campos)
+            ok2, _ = self._executar(f"Atualizado: {v['nome']}", self.site.editar_pessoa, nome, **dict(v))
             if ok2:
                 self._depois_de_alterar()
             return ok2
@@ -569,6 +813,145 @@ class App(tk.Tk):
             self._depois_de_alterar()
         else:
             self.log("  nada novo em imagens/jogos/.")
+
+    # ------------------------------------------------------------ calendário
+
+    def _carregar_calendario(self, caminho: str) -> bool:
+        try:
+            dados = json.loads(Path(caminho).read_text(encoding="utf-8"))
+            if not isinstance(dados, dict):
+                raise ValueError("o JSON do calendário deve ser um objeto.")
+        except (OSError, ValueError) as e:
+            self._erro(e)
+            return False
+        self.caminho_cal, self.dados_cal = caminho, dados
+        self.lbl_cal.config(text=f"{dados.get('mes_ano', '?')}  ({Path(caminho).name})", foreground="#15803d")
+        self._salvar_config(calendario=caminho)
+        self.log(f"Calendário carregado: {caminho}")
+        self._preencher_calendario()
+        return True
+
+    def _preencher_calendario(self):
+        self.tv_cal.delete(*self.tv_cal.get_children())
+        eventos = self.dados_cal.get("eventos", {})
+        for dia in sorted(eventos, key=lambda d: int(d) if str(d).isdigit() else 0):
+            ev = eventos[dia]
+            self.tv_cal.insert("", "end", iid=str(dia), values=(
+                dia, ev.get("tipo", ""), ev.get("hora", ""), ev.get("titulo", "")))
+
+    def _gravar_calendario(self) -> bool:
+        try:
+            Path(self.caminho_cal).write_text(
+                json.dumps(self.dados_cal, ensure_ascii=False, indent=2), encoding="utf-8")
+        except OSError as e:
+            self._erro(e)
+            return False
+        self._preencher_calendario()
+        if self.var_auto.get():
+            self.atualizar_calendario()
+        return True
+
+    def _exige_calendario(self) -> bool:
+        if self.site is None:
+            self.escolher_pasta()
+            return False
+        if not self.caminho_cal:
+            messagebox.showinfo("Calendário", "Abra um JSON do mês (ou crie um novo) primeiro.", parent=self)
+            return False
+        return True
+
+    def abrir_json_calendario(self):
+        if self.site is None:
+            return self.escolher_pasta()
+        caminho = filedialog.askopenfilename(
+            parent=self, title="JSON do mês", filetypes=[("Arquivos JSON", "*.json")],
+            initialdir=str(self.site.pasta_dados))
+        if caminho:
+            self._carregar_calendario(caminho)
+
+    def novo_mes(self):
+        if self.site is None:
+            return self.escolher_pasta()
+
+        def salvar(v):
+            if not v["mes_ano"] or not v["total"].isdigit() or not 28 <= int(v["total"]) <= 31:
+                messagebox.showwarning("Aviso", "Informe o mês/ano e o total de dias (28 a 31).", parent=self)
+                return False
+            anteriores = [int(x) for x in re.split(r"[,\s;]+", v["anteriores"]) if x.isdigit()]
+            sugerido = f"eventos_{sp.slug(v['mes_ano']).replace('-', '_')}.json"
+            caminho = filedialog.asksaveasfilename(
+                parent=self, defaultextension=".json", initialfile=sugerido,
+                initialdir=str(self.site.pasta_dados), filetypes=[("Arquivos JSON", "*.json")])
+            if not caminho:
+                return False
+            novo = {"mes_ano": v["mes_ano"], "offset_dias_anteriores": anteriores,
+                    "total_dias_mes": int(v["total"]), "eventos": {}}
+            try:
+                Path(caminho).write_text(json.dumps(novo, ensure_ascii=False, indent=2), encoding="utf-8")
+            except OSError as e:
+                self._erro(e)
+                return False
+            return self._carregar_calendario(caminho)
+
+        Dialogo(self, "Novo mês", [
+            ("mes_ano", "Mês e ano (ex.: Novembro 2026)", "entry"),
+            ("anteriores", "Dias do mês anterior (ex.: 29, 30, 31)", "entry"),
+            ("total", "Total de dias do mês", "entry")],
+            {"total": "30"}, salvar)
+
+    def _dialogo_evento(self, titulo, valores, dia_fixo=None):
+        total = int(self.dados_cal.get("total_dias_mes", 31))
+
+        def salvar(v):
+            dia = dia_fixo or v["dia"]
+            if not dia.isdigit() or not 1 <= int(dia) <= total:
+                messagebox.showwarning("Aviso", f"O dia deve ser um número de 1 a {total}.", parent=self)
+                return False
+            try:
+                hora = sp.normalizar_hora(v["hora"]) if v["hora"] else ""
+            except sp.ErroDados as e:
+                messagebox.showwarning("Aviso", str(e), parent=self)
+                return False
+            self.dados_cal.setdefault("eventos", {})[str(int(dia))] = {
+                "tipo": v["tipo"] if v["tipo"] in TIPOS_EVENTO else "jogo", "hora": hora, "titulo": v["titulo"]}
+            self.log(f"Evento salvo no dia {int(dia)}: [{v['tipo'].upper()}] {hora} - {v['titulo']}")
+            return self._gravar_calendario()
+
+        Dialogo(self, titulo, [
+            ("dia", "Dia do mês", "entry"), ("tipo", "Tipo", "combo", TIPOS_EVENTO),
+            ("hora", "Horário (ex.: 10:00)", "entry"), ("titulo", "Descrição / Adversário", "entry")],
+            valores, salvar, dica="Se já houver evento no dia, ele é substituído.")
+
+    def adicionar_evento(self):
+        if self._exige_calendario():
+            self._dialogo_evento("Adicionar evento", {"tipo": "jogo"})
+
+    def editar_evento(self):
+        if not self._exige_calendario():
+            return
+        dia = self._selecionado(self.tv_cal, "um evento")
+        if dia is None:
+            return
+        ev = self.dados_cal.get("eventos", {}).get(dia, {})
+        self._dialogo_evento(f"Editar evento do dia {dia}", {"dia": dia, **ev})
+
+    def remover_evento(self):
+        if not self._exige_calendario():
+            return
+        dia = self._selecionado(self.tv_cal, "um evento")
+        if dia is None:
+            return
+        if not messagebox.askyesno("Remover", f"Remover o evento do dia {dia}?", parent=self):
+            return
+        self.dados_cal.get("eventos", {}).pop(dia, None)
+        self.log(f"Evento do dia {dia} removido.")
+        self._gravar_calendario()
+
+    def atualizar_calendario(self):
+        if not self._exige_calendario():
+            return
+        ok, _ = self._executar("calendario.html atualizado.", gerar_calendario_html, self.site, self.dados_cal)
+        return ok
 
 
 def main():
