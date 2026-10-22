@@ -24,7 +24,7 @@ import sys
 import threading
 import tkinter as tk
 import webbrowser
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from tkinter.scrolledtext import ScrolledText
@@ -264,9 +264,77 @@ def gerar_calendario_html(site: "sp.Site", dados: dict) -> None:
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+        # --- CONFIGURAÇÃO DE ESTILO MODERNO (Ttk.Style) ---
+        estilo = ttk.Style(self)
+        
+        # Tenta usar o tema 'clam' como base, pois aceita customização de cores perfeitamente no Linux/Windows
+        if "clam" in estilo.theme_names():
+            estilo.theme_use("clam")
+
+        # Paleta de Cores Moderna (Tons de Cinza Slate + Azul Corporativo)
+        COR_BG_GERAL = "#f8fafc"      # Fundo claro limpo
+        COR_PRIMARIA = "#2563eb"      # Azul moderno
+        COR_HOVER = "#1d4ed8"         # Azul mais escuro para hover
+        COR_TEXTO = "#1e293b"         # Texto escuro legível
+        COR_TEXTO_CLARO = "#64748b"   # Texto secundário
+
+        # Configurações globais de fontes e cores
+        self.configure(bg=COR_BG_GERAL)
+        
+        estilo.configure(".", 
+                         background=COR_BG_GERAL, 
+                         foreground=COR_TEXTO, 
+                         font=("Helvetica", 10))
+
+        # Estilo para os Notebooks (Abas)
+        estilo.configure("TNotebook", background=COR_BG_GERAL, borderwidth=0)
+        estilo.configure("TNotebook.Tab", 
+                         padding=(12, 8), 
+                         font=("Helvetica", 10, "bold"),
+                         background="#e2e8f0", 
+                         foreground="#475569")
+        estilo.map("TNotebook.Tab", 
+                   background=[("selected", COR_PRIMARIA)], 
+                   foreground=[("selected", "#ffffff")])
+
+        # Estilo para Botões Padrão TTK
+        estilo.configure("TButton", 
+                         padding=(10, 6), 
+                         font=("Helvetica", 9, "bold"), 
+                         relief="flat", 
+                         background="#e2e8f0", 
+                         foreground=COR_TEXTO)
+        
+        # Estilo para Tabelas (Treeview) mais limpas e espaçadas
+        estilo.configure("Treeview", 
+                         background="#ffffff", 
+                         foreground=COR_TEXTO, 
+                         rowheight=26, 
+                         fieldbackground="#ffffff",
+                         font=("Helvetica", 9))
+        
+        estilo.configure("Treeview.Heading", 
+                         font=("Helvetica", 9, "bold"), 
+                         background="#e2e8f0", 
+                         foreground=COR_TEXTO,
+                         relief="flat")
+        
+        estilo.map("Treeview", 
+                   background=[('selected', COR_PRIMARIA)], 
+                   foreground=[('selected', '#ffffff')])
+
         self.title("Pétalas Negras - gerenciador do site")
         self.geometry("1000x740")
         self.minsize(860, 580)
+        
+        try:
+            self.state("fullscreen")
+        except tk.TclError:
+            try:
+                self.attributes("-fullscreen", True)
+            except tk.TclError:
+                pass
+                
         self.site = None
         self.servidor = None
         self.caminho_cal = None
@@ -277,6 +345,7 @@ class App(tk.Tk):
 
         self._montar_topo()
         self._montar_abas()
+        self.after(200, self._atualizar_cards_dashboard)
         self._montar_rodape()
         self.protocol("WM_DELETE_WINDOW", self._fechar)
 
@@ -289,21 +358,39 @@ class App(tk.Tk):
     # ------------------------------------------------------------ montagem
 
     def _montar_topo(self):
+        # Barra de ferramentas superior (Toolbar)
         topo = ttk.Frame(self, padding=(10, 8))
-        topo.pack(fill="x")
-        ttk.Label(topo, text="Pasta do site:").pack(side="left")
-        ttk.Entry(topo, textvariable=self.var_pasta, state="readonly").pack(
-            side="left", fill="x", expand=True, padx=8)
-        ttk.Button(topo, text="Escolher...", command=self.escolher_pasta).pack(side="left")
-        ttk.Button(topo, text="Recarregar", command=self.recarregar).pack(side="left", padx=(6, 0))
-        ttk.Button(topo, text="Ver no navegador", command=self.abrir_navegador).pack(side="left", padx=(6, 0))
-        ttk.Button(topo, text="Gerar Backup (.zip)", command=self.fazer_backup).pack(side="left", padx=(6, 0))
+        topo.pack(fill="x", side="top")
+        
+        # 1. Seleção da pasta do site
+        ttk.Label(topo, text="Pasta do site:").pack(side="left", padx=(0, 4))
+        ttk.Entry(topo, textvariable=self.var_pasta, state="readonly", width=35).pack(
+            side="left", fill="x", expand=True, padx=(0, 6))
+        ttk.Button(topo, text="Escolher...", command=self.escolher_pasta).pack(side="left", padx=(0, 6))
+        
+        # 2. Ações do sistema
+        ttk.Button(topo, text="🔄 Recarregar", command=self.recarregar).pack(side="left", padx=(0, 4))
+        ttk.Button(topo, text="🌐 Ver no Navegador", command=self.abrir_navegador).pack(side="left", padx=(0, 4))
+        
+        if hasattr(self, "gerar_backup_zip"):
+            ttk.Button(topo, text="📦 Gerar Zip", command=self.gerar_backup_zip).pack(side="left", padx=(0, 4))
+
+        # Divisor visual antes do botão de fechar
+        ttk.Separator(topo, orient="vertical").pack(side="left", fill="y", padx=8)
+        
+        # Botão para fechar o aplicativo com destaque
+        btn_fechar = tk.Button(topo, text="✕ Fechar App", command=self._fechar, 
+                               bg="#ef4444", fg="#ffffff", activebackground="#dc2626", activeforeground="#ffffff",
+                               relief="flat", padx=10, pady=3, font=("Helvetica", 9, "bold"))
+        btn_fechar.pack(side="left")
 
     def _montar_abas(self):
         self.abas = ttk.Notebook(self)
         self.abas.pack(fill="both", expand=True, padx=10)
+        self._aba_dashboard()
         self._aba_elenco()
         self._aba_jogos()
+        self._aba_treinos()
         self._aba_calendario()
         self._aba_ranking()
         self._aba_financas()
@@ -312,6 +399,10 @@ class App(tk.Tk):
     def _aba_elenco(self):
         aba = ttk.Frame(self.abas, padding=8)
         self.abas.add(aba, text="  Elenco  ")
+
+        # Utilizando a função padrão de busca
+        self.var_busca_elenco = self._criar_barra_busca(aba, self._preencher_elenco)
+
         quadro, self.tv_elenco = _tabela(aba, [
             ("numero", "Nº", 50, "center"), ("nome", "Nome", 220, "w"), ("posicao", "Posição", 170, "w"),
             ("jogos", "Jogos", 70, "center"), ("gols", "Gols", 70, "center"),
@@ -334,6 +425,10 @@ class App(tk.Tk):
     def _aba_jogos(self):
         aba = ttk.Frame(self.abas, padding=8)
         self.abas.add(aba, text="  Jogos  ")
+
+        # Utilizando a função padrão de busca
+        self.var_busca_jogos = self._criar_barra_busca(aba, self._preencher_jogos)
+
         quadro, self.tv_jogos = _tabela(aba, [
             ("data", "Data", 90, "center"), ("hora", "Hora", 60, "center"),
             ("adversario", "Adversário", 240, "w"), ("local", "Local", 200, "w"),
@@ -352,7 +447,239 @@ class App(tk.Tk):
             ttk.Button(barra, text=texto, command=cmd).pack(side="left", padx=(0, 6))
         ttk.Button(barra, text="Sincronizar fotos dos jogos", command=self.sincronizar_fotos_jogos).pack(
             side="right")
+    
+    def _aba_treinos(self):
+        aba = ttk.Frame(self.abas, padding=8)
+        self.abas.add(aba, text="  Treinos & Presença  ")
 
+        # Divisão em duas partes: Esquerda (Lista de Treinos), Direita (Ranking de Presença)
+        painel_principal = ttk.PanedWindow(aba, orient="horizontal")
+        painel_principal.pack(fill="both", expand=True)
+
+        # --- Lado Esquerdo: Treinos Cadastrados ---
+        frame_esq = ttk.Frame(painel_principal, padding=4)
+        painel_principal.add(frame_esq, weight=3)
+
+        self.var_busca_treinos = self._criar_barra_busca(frame_esq, self._preencher_treinos)
+
+        quadro_t, self.tv_treinos = _tabela(frame_esq, [
+            ("data", "Data", 85, "center"), 
+            ("hora", "Hora", 60, "center"), 
+            ("descricao", "Descrição do Treino", 250, "w"),
+            ("presentes", "Presenças", 70, "center")
+        ], altura=16)
+        quadro_t.pack(fill="both", expand=True)
+        self.tv_treinos.bind("<Double-1>", lambda _e: self.gerenciar_presenca_treino())
+
+        barra_t = ttk.Frame(frame_esq)
+        barra_t.pack(fill="x", pady=(8, 0))
+        ttk.Button(barra_t, text="Novo Treino...", command=self.adicionar_treino).pack(side="left", padx=(0, 6))
+        ttk.Button(barra_t, text="Editar Treino...", command=self.editar_treino).pack(side="left", padx=(0, 6)) # <--- Novo botão
+        ttk.Button(barra_t, text="Lista de Chamada...", command=self.gerenciar_presenca_treino).pack(side="left", padx=(0, 6))
+        ttk.Button(barra_t, text="Remover Treino", command=self.remover_treino).pack(side="left")
+
+
+        # --- Lado Direito: Resumo de Frequência dos Atletas (Com Barra de Busca Própria) ---
+        frame_dir = ttk.Frame(painel_principal, padding=4)
+        painel_principal.add(frame_dir, weight=2)
+
+        ttk.Label(frame_dir, text="Frequência Geral dos Atletas", font=("Helvetica", 11, "bold")).pack(anchor="w", pady=(0, 2))
+        
+        # Filtro específico para o ranking de presença
+        self.var_busca_frequencia = self._criar_barra_busca(frame_dir, self._preencher_treinos)
+
+        quadro_p, self.tv_presenca_resumo = _tabela(frame_dir, [
+            ("nome", "Atleta", 160, "w"),
+            ("freq", "% Presença", 90, "center"),
+            ("detalhes", "Pres / Just", 90, "center")
+        ], altura=14)
+        quadro_p.pack(fill="both", expand=True)
+
+        # Carrega automaticamente ao montar a aba
+        self.after(100, self._preencher_treinos)
+
+    def editar_treino(self):
+        sel = self.tv_treinos.selection()
+        if not sel:
+            messagebox.showinfo("Seleção", "Selecione um treino na lista para editar.", parent=self)
+            return
+        
+        t_id = sel[0]
+        treinos = self.site.carregar_treinos()
+        treino = treinos.get(t_id, {})
+
+        def salvar(v):
+            if not v["descricao"]:
+                messagebox.showwarning("Aviso", "Informe a descrição do treino.", parent=self)
+                return False
+            # Mantém as presenças já salvas, atualizando apenas os dados gerais
+            self.site.adicionar_ou_editar_treino(t_id, v["data"], v["hora"], v["descricao"], treino.get("presencas", {}))
+            self.log(f"Treino atualizado: {v['descricao']}")
+            self._preencher_treinos()
+            return True
+
+        Dialogo(self, "Editar Treino", [
+            ("data", "Data (DD/MM/AAAA)", "entry"),
+            ("hora", "Horário (ex.: 20:00)", "entry"),
+            ("descricao", "Descrição do Treino", "entry")
+        ], {
+            "data": treino.get("data", ""),
+            "hora": treino.get("hora", ""),
+            "descricao": treino.get("descricao", "")
+        }, salvar)
+
+    def _preencher_treinos(self):
+        if not hasattr(self, "tv_treinos") or self.site is None:
+            return
+
+        self.tv_treinos.delete(*self.tv_treinos.get_children())
+        self.tv_presenca_resumo.delete(*self.tv_presenca_resumo.get_children())
+
+        filtro_treinos = sp.sem_acento(self.var_busca_treinos.get().strip()) if hasattr(self, "var_busca_treinos") else ""
+        filtro_freq = sp.sem_acento(self.var_busca_frequencia.get().strip()) if hasattr(self, "var_busca_frequencia") else ""
+        
+        treinos = self.site.carregar_treinos()
+
+        # 1. Preenche tabela de treinos com filtro aplicado
+        for t_id, t in sorted(treinos.items(), key=lambda x: x[1].get("data", ""), reverse=True):
+            texto_linha = f"{t.get('data')} {t.get('hora')} {t.get('descricao')}"
+            if filtro_treinos and filtro_treinos not in sp.sem_acento(texto_linha):
+                continue
+            
+            presencas = t.get("presencas", {})
+            total_p = sum(1 for p in presencas.values() if p.get("status") == "presente")
+
+            self.tv_treinos.insert("", "end", iid=t_id, values=(
+                t.get("data"), t.get("hora"), t.get("descricao"), f"{total_p} atletas"
+            ))
+
+        # 2. Preenche resumo de frequência com filtro de nome aplicado
+        freqs = self.site.calcular_porcentagem_presenca()
+        for slug, info in sorted(freqs.items(), key=lambda x: x[1]["porcentagem"], reverse=True):
+            if filtro_freq and filtro_freq not in sp.sem_acento(info["nome"]):
+                continue
+
+            p_val = info["porcentagem"]
+            icone_p = "🟢" if p_val >= 75 else ("🟡" if p_val >= 50 else "🔴")
+            
+            self.tv_presenca_resumo.insert("", "end", iid=slug, values=(
+                info["nome"],
+                f"{icone_p} {p_val:.1f}%",
+                f"{info['presentes']} / {info['justificadas']} just."
+            ))
+        
+        self._aplicar_efeito_zebra(self.tv_treinos)
+        self._aplicar_efeito_zebra(self.tv_presenca_resumo)
+    
+    def adicionar_treino(self):
+        if self.site is None:
+            return self.escolher_pasta()
+
+        def salvar(v):
+            if not v["descricao"]:
+                messagebox.showwarning("Aviso", "Informe a descrição do treino.", parent=self)
+                return False
+            # Cria o treino com lista vazia inicialmente
+            self.site.adicionar_ou_editar_treino("", v["data"], v["hora"], v["descricao"], {})
+            self.log(f"Treino criado: {v['descricao']} em {v['data']}")
+            self._preencher_treinos()
+            return True
+
+        Dialogo(self, "Novo Treino", [
+            ("data", "Data (DD/MM/AAAA)", "entry"),
+            ("hora", "Horário (ex.: 20:00)", "entry"),
+            ("descricao", "O que vai ter no treino (ex: Tático/Finalização)", "entry")
+        ], {"data": date.today().strftime("%d/%m/%Y"), "hora": "20:00"}, salvar)
+
+    def gerenciar_presenca_treino(self):
+        sel = self.tv_treinos.selection()
+        if not sel:
+            messagebox.showinfo("Seleção", "Selecione um treino na lista para gerenciar a chamada.", parent=self)
+            return
+        
+        t_id = sel[0]
+        treinos = self.site.carregar_treinos()
+        treino = treinos.get(t_id, {})
+        
+        # Abre a janela personalizada de Chamada / Presença
+        janela_chamada = tk.Toplevel(self)
+        janela_chamada.title(f"Chamada - {treino.get('descricao')} ({treino.get('data')})")
+        janela_chamada.geometry("600x500")
+        janela_chamada.transient(self)
+
+        # ADICIONE ESTAS DUAS LINHAS PARA GARANTIR QUE A JANELA ESTÁ VISÍVEL ANTES DO GRAB:
+        janela_chamada.update_idletasks()
+        janela_chamada.deiconify()
+
+        janela_chamada.grab_set()
+
+        ttk.Label(janela_chamada, text=f"Treino: {treino.get('descricao')} | Data: {treino.get('data')}", font=("Helvetica", 11, "bold")).pack(pady=10)
+        ttk.Label(janela_chamada, text="Marque a presença ou clique duas vezes para justificar falta informando o motivo.", foreground="#555").pack(pady=(0, 10))
+
+        # Tabela de atletas dentro da janela de chamada
+        quadro, tv_chamada = _tabela(janela_chamada, [
+            ("nome", "Atleta", 180, "w"),
+            ("status", "Status", 120, "center"),
+            ("motivo", "Motivo da Justificativa", 220, "w")
+        ], altura=14)
+        quadro.pack(fill="both", expand=True, padx=10)
+
+        atletas = [a for a in self.site.listar_elenco() if a["grupo"] != sp.GRUPO_STAFF]
+        presencas_atuais = treino.get("presencas", {})
+
+        for a in atletas:
+            slug = a["slug"]
+            p_info = presencas_atuais.get(slug, {"status": "ausente", "motivo": ""}) # Padrão: presente
+            status_txt = "✅ Presente" if p_info["status"] == "presente" else ("❌ Ausente" if p_info["status"] == "ausente" else "⚠️ Justificado")
+            
+            tv_chamada.insert("", "end", iid=slug, values=(
+                a["nome"], status_txt, p_info.get("motivo", "")
+            ))
+
+        # Funções para alterar status direto na janela
+        def alterar_status(novo_status):
+            selecionado = tv_chamada.selection()
+            if not selecionado:
+                messagebox.showwarning("Aviso", "Selecione um atleta na tabela.", parent=janela_chamada)
+                return
+            slug = selecionado[0]
+            motivo = ""
+            if novo_status == "justificado":
+                motivo = simpledialog.askstring("Justificativa", "Informe o motivo da falta justificada:", parent=janela_chamada)
+                if motivo is None: return
+            
+            # Atualiza no dicionário local do treino
+            presencas_atuais[slug] = {"status": novo_status, "motivo": motivo or ""}
+            status_txt = "✅ Presente" if novo_status == "presente" else ("❌ Ausente" if novo_status == "ausente" else "⚠️ Justificado")
+            tv_chamada.item(slug, values=(tv_chamada.item(slug, "values")[0], status_txt, motivo or ""))
+
+        barra_botoes = ttk.Frame(janela_chamada, padding=10)
+        barra_botoes.pack(fill="x")
+        
+        ttk.Button(barra_botoes, text="Marcar Presente ✅", command=lambda: alterar_status("presente")).pack(side="left", padx=4)
+        ttk.Button(barra_botoes, text="Marcar Ausente ❌", command=lambda: alterar_status("ausente")).pack(side="left", padx=4)
+        ttk.Button(barra_batoroes := barra_botoes, text="Justificar Falta ⚠️", command=lambda: alterar_status("justificado")).pack(side="left", padx=4)
+
+        def salvar_e_fechar():
+            self.site.adicionar_ou_editar_treino(t_id, treino.get("data"), treino.get("hora"), treino.get("descricao"), presencas_atuais)
+            self.log(f"Chamada salva para o treino: {treino.get('descricao')}")
+            self._preencher_treinos()
+            janela_chamada.destroy()
+
+        ttk.Button(barra_botoes, text="Salvar Chamada", command=salvar_e_fechar).pack(side="right", padx=4)
+
+    def remover_treino(self):
+        sel = self.tv_treinos.selection()
+        if not sel:
+            messagebox.showinfo("Seleção", "Selecione um treino para remover.", parent=self)
+            return
+        t_id = sel[0]
+        if not messagebox.askyesno("Confirmação", "Deseja realmente remover este treino e suas chamadas?", parent=self):
+            return
+        self.site.remover_treino(t_id)
+        self.log("Treino removido.")
+        self._preencher_treinos()
+            
     def _aba_calendario(self):
         aba = ttk.Frame(self.abas, padding=8)
         self.abas.add(aba, text="  Calendário  ")
@@ -525,23 +852,23 @@ class App(tk.Tk):
         self.entry_val_mensalidade.pack(side="left", padx=(0, 8))
         
         ttk.Button(topo_frame, text="Atualizar Valor", command=self.salvar_valor_mensalidade_config).pack(side="left", padx=(0, 20))
+        ttk.Button(topo_frame, text="Marcar como Pago", command=lambda: self.mudar_status_selecionado("pago")).pack(side="left", padx=(0, 6))
+        ttk.Button(topo_frame, text="Marcar como Pendente", command=lambda: self.mudar_status_selecionado("pendente")).pack(side="left", padx=(0, 6))
 
-        ttk.Button(topo_frame, text="Marcar Selecionado como Pago", command=lambda: self.mudar_status_selecionado("pago")).pack(side="left", padx=(0, 6))
-        ttk.Button(topo_frame, text="Marcar Selecionado como Pendente", command=lambda: self.mudar_status_selecionado("pendente")).pack(side="left", padx=(0, 6))
-        ttk.Button(topo_frame, text="Marcar Todos como Pendente", command=self.marcar_todos_pendente).pack(side="right")
+        # UTILIZANDO A FUNÇÃO PADRÃO DE BUSCA AQUI:
+        self.var_busca_mensalidades = self._criar_barra_busca(aba, self._preencher_mensalidades)
 
-        # Tabela de mensalidades (igual à do elenco + status)
+        # Tabela de mensalidades
         quadro, self.tv_mensalidades = _tabela(aba, [
             ("numero", "Nº", 50, "center"), 
             ("nome", "Nome", 250, "w"), 
             ("posicao", "Posição", 200, "w"),
             ("status", "Status da Mensalidade", 150, "center")
-        ], altura=18)
+        ], altura=16)
         quadro.pack(fill="both", expand=True)
         
         self.tv_mensalidades.bind("<Double-1>", lambda _e: self.alternar_status_duplo_clique())
 
-        # Carrega o valor inicial e preenche a lista
         if self.site:
             self.entry_val_mensalidade.insert(0, f"{self.site.obter_valor_mensalidade():.2f}")
             self._preencher_mensalidades()
@@ -550,6 +877,9 @@ class App(tk.Tk):
         self.tv_mensalidades.delete(*self.tv_mensalidades.get_children())
         if self.site is None:
             return
+        
+        # Pega o texto digitado na barra de busca de mensalidades
+        filtro = sp.sem_acento(self.var_busca_mensalidades.get().strip()) if hasattr(self, "var_busca_mensalidades") else ""
         
         try:
             atletas = [a for a in self.site.listar_elenco() if a["grupo"] != sp.GRUPO_STAFF]
@@ -560,6 +890,11 @@ class App(tk.Tk):
                 estado = status_dict.get(slug_a, "pendente")
                 status_txt = "✅ PAGO" if estado == "pago" else "❌ PENDENTE"
                 
+                # Aplica o filtro de texto (nome, posição, número ou status)
+                texto_linha = f"{a['numero']} {a['nome']} {a['posicao']} {status_txt}"
+                if filtro and filtro not in sp.sem_acento(texto_linha):
+                    continue
+
                 self.tv_mensalidades.insert("", "end", iid=slug_a, values=(
                     "" if a["numero"] is None else a["numero"], 
                     a["nome"], 
@@ -568,6 +903,8 @@ class App(tk.Tk):
                 ))
         except Exception as e:
             self.log(f"Erro ao carregar mensalidades: {e}", "erro")
+        
+        self._aplicar_efeito_zebra(self.tv_mensalidades)
 
     def salvar_valor_mensalidade_config(self):
         if self.site is None:
@@ -633,6 +970,197 @@ class App(tk.Tk):
         self.site.salvar_status_mensalidades(status_dict)
         self._preencher_mensalidades()
         self.log("Todas as mensalidades foram redefinidas para PENDENTE.")
+
+    def _criar_card_dashboard(self, parent, titulo, valor_inicial, cor_borda="#2563eb"):
+        """Cria um card visual moderno com borda colorida e destaque para o valor."""
+        card = tk.Frame(parent, bg="#ffffff", bd=0, relief="flat", highlightbackground="#e2e8f0", highlightthickness=1)
+        
+        # Detalhe lateral colorido para dar um toque moderno
+        barra = tk.Frame(card, bg=cor_borda, width=4)
+        barra.pack(side="left", fill="y")
+        
+        conteudo = tk.Frame(card, bg="#ffffff", padx=12, pady=10)
+        conteudo.pack(side="left", fill="both", expand=True)
+        
+        lbl_titulo = tk.Label(conteudo, text=titulo.upper(), font=("Helvetica", 8, "bold"), fg="#64748b", bg="#ffffff")
+        lbl_titulo.pack(anchor="w")
+        
+        lbl_valor = tk.Label(conteudo, text=str(valor_inicial), font=("Helvetica", 16, "bold"), fg="#1e293b", bg="#ffffff")
+        lbl_valor.pack(anchor="w", pady=(2, 0))
+        
+        # Guarda referência do label de valor para poder atualizar depois
+        card.lbl_valor = lbl_valor
+        return card
+
+    def _aba_dashboard(self):
+        aba = ttk.Frame(self.abas, padding=12)
+        self.abas.add(aba, text="  Dashboard  ")
+
+        # Container superior para os Cards de Resumo (lado a lado)
+        frame_cards = tk.Frame(aba, bg="#f8fafc")
+        frame_cards.pack(fill="x", pady=(0, 10))
+
+        # Cria os 4 cards principais
+        self.card_atletas = self._criar_card_dashboard(frame_cards, "Atletas Ativos", "0", "#2563eb")
+        self.card_atletas.pack(side="left", fill="both", expand=True, padx=(0, 8))
+
+        self.card_caixa = self._criar_card_dashboard(frame_cards, "Caixa (Saldo)", "R$ 0,00", "#16a34a")
+        self.card_caixa.pack(side="left", fill="both", expand=True, padx=8)
+
+        self.card_treinos = self._criar_card_dashboard(frame_cards, "Média Presença", "0%", "#d97706")
+        self.card_treinos.pack(side="left", fill="both", expand=True, padx=8)
+
+        self.card_prox_jogo = self._criar_card_dashboard(frame_cards, "Próximo Jogo", "Nenhum", "#9333ea")
+        self.card_prox_jogo.pack(side="left", fill="both", expand=True, padx=(8, 0))
+
+        # Moldura compacta para a foto (sem expand=True para não empurrar para baixo)
+        frame_baixo = ttk.LabelFrame(aba, text=" 📸 Foto Oficial da Equipe ", padding=8)
+        frame_baixo.pack(fill="x", pady=(0, 0))
+
+        # Label que conterá a imagem de forma compacta
+        self.lbl_foto_time = ttk.Label(frame_baixo, anchor="center")
+        self.lbl_foto_time.pack(fill="x", padx=5, pady=2)
+
+        # Tenta carregar a foto do time ao iniciar
+        self.after(150, self._carregar_foto_dashboard)
+
+        # Garante a atualização automática ao trocar para esta aba
+        self.abas.bind("<<NotebookTabChanged>>", self._ao_trocar_aba)
+
+        # Carrega na inicialização
+        self.after(100, self._atualizar_cards_dashboard)
+
+    def _carregar_foto_dashboard(self):
+        """Carrega, redimensiona e exibe a foto do time no dashboard."""
+        if self.site is None:
+            return
+            
+        try:
+            caminho_foto = self.site.raiz / "imagens" / "elenco.png"
+            if not caminho_foto.exists():
+                caminho_foto = self.site.raiz / "imagens" / "elenco.jpg"
+            if not caminho_foto.exists():
+                caminho_foto = self.site.raiz / "imagens" / "time.png"
+            if not caminho_foto.exists():
+                caminho_foto = self.site.raiz / "imagens" / "time.jpeg"
+                
+            if caminho_foto.exists():
+                img_original = tk.PhotoImage(file=str(caminho_foto))
+                
+                # Reduz a imagem proporcionalmente (ajuste o valor se precisar menor/maior, ex: subsample(3,3))
+                self.img_time = img_original.subsample(2, 2)
+                
+                self.lbl_foto_time.config(image=self.img_time, text="")
+            else:
+                self.lbl_foto_time.config(
+                    text="Nenhuma foto encontrada na pasta 'imagens/' (ex: elenco.png ou time.png).",
+                    font=("Helvetica", 9)
+                )
+        except Exception as e:
+            self.lbl_foto_time.config(text=f"Não foi possível carregar a imagem: {e}")
+
+    def _ao_trocar_aba(self, event):
+        """Atualiza o dashboard automaticamente sempre que o usuário clica na aba."""
+        try:
+            aba_atual = self.abas.tab(self.abas.select(), "text").strip()
+            if "Dashboard" in aba_atual:
+                self._atualizar_cards_dashboard()
+        except Exception:
+            pass
+
+    def _atualizar_cards_dashboard(self):
+        if self.site is None:
+            return
+            
+        try:
+            # 1. Atletas Ativos
+            atletas = [a for a in self.site.listar_elenco() if a.get("grupo") != sp.GRUPO_STAFF]
+            if hasattr(self, "card_atletas") and self.card_atletas:
+                self.card_atletas.lbl_valor.config(text=str(len(atletas)))
+
+            # 2. Saldo em Caixa (Lendo direto do arquivo de finanças/transações)
+            saldo = 0.0
+            try:
+                transacoes = self.site.listar_financas()
+                for t in transacoes:
+                    val = float(t.get("valor", 0))
+                    if t.get("tipo") == "recebita":
+                        saldo += val
+                    else:
+                        saldo -= val
+            except Exception:
+                pass
+            
+            saldo_fmt = f"R$ {saldo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            if hasattr(self, "card_caixa") and self.card_caixa:
+                self.card_caixa.lbl_valor.config(text=saldo_fmt)
+
+            # 3. Média de Presença
+            media_geral = 0.0
+            try:
+                freqs = self.site.calcular_porcentagem_presenca()
+                if freqs:
+                    media_geral = sum(info["porcentagem"] for info in freqs.values()) / len(freqs)
+            except Exception:
+                pass
+
+            if hasattr(self, "card_treinos") and self.card_treinos:
+                self.card_treinos.lbl_valor.config(text=f"{media_geral:.1f}%")
+
+            # 4. Próximo Jogo
+            proximo_adversario = "Nenhum"
+            try:
+                jogos_dict = self.site.listar_jogos()
+                if jogos_dict:
+                    hoje = date.today()
+                    proximos = [j for j in jogos_dict if datetime.strptime(j["data_br"], "%d/%m/%Y").date() >= hoje]
+                    proximos.sort(key=lambda j: datetime.strptime(j["data_br"], "%d/%m/%Y").date())
+                    if proximos:
+                        p = proximos[0]
+                        proximo_adversario = f"{p['adversario']} ({p['data_br']})"
+            except Exception:
+                pass
+
+            if hasattr(self, "card_prox_jogo") and self.card_prox_jogo:
+                self.card_prox_jogo.lbl_valor.config(text=proximo_adversario)
+
+            # 5. Artilheiros e Assistências
+            artilheiros_lista, assistentes_lista = [], []
+            for a in atletas:
+                nome = a.get("nome", "Atleta")
+                gols = int(a.get("gols", 0))
+                assts = int(a.get("assistencias", 0))
+                if gols > 0:
+                    artilheiros_lista.append((nome, gols))
+                if assts > 0:
+                    assistentes_lista.append((nome, assts))
+
+            melhor_artilheiro = "Nenhum gol registrado"
+            melhor_assistente = "Nenhuma assistência registrada"
+            if artilheiros_lista:
+                artilheiros_lista.sort(key=lambda x: x[1], reverse=True)
+                melhor_artilheiro = f"⚽ {artilheiros_lista[0][0]} — {artilheiros_lista[0][1]} gols"
+            if assistentes_lista:
+                assistentes_lista.sort(key=lambda x: x[1], reverse=True)
+                melhor_assistente = f"👟 {assistentes_lista[0][0]} — {assistentes_lista[0][1]} assistências"
+
+            if hasattr(self, "lbl_artilheiro"):
+                self.lbl_artilheiro.config(text=melhor_artilheiro)
+            if hasattr(self, "lbl_assistencias"):
+                self.lbl_assistencias.config(text=melhor_assistente)
+
+            total_treinos = len(self.site.carregar_treinos()) if hasattr(self.site, "carregar_treinos") else 0
+            texto_ind = (
+                f"• Atletas Ativos: {len(atletas)}\n"
+                f"• Treinos Registrados: {total_treinos}\n"
+                f"• Jogos Cadastrados: {len(self.site.listar_jogos())}\n"
+                f"• Caixa Líquido: {saldo_fmt}"
+            )
+            if hasattr(self, "lbl_indicadores"):
+                self.lbl_indicadores.config(text=texto_ind)
+
+        except Exception as e:
+            print(f"Erro detalhado no dashboard: {e}")
 
     def _montar_rodape(self):
         rodape = ttk.Frame(self, padding=(10, 6))
@@ -716,10 +1244,15 @@ class App(tk.Tk):
         ultimo = self._config().get("calendario", "")
         if ultimo and Path(ultimo).is_file():
             self._carregar_calendario(ultimo)
+        
+        # ---> ADICIONE ESTA LINHA ABAIXO <---
+        self._atualizar_cards_dashboard()
 
     def recarregar(self):
         if self.site is not None:
             self.abrir_site(str(self.site.raiz))
+        
+        self._atualizar_cards_dashboard()
 
     def recarregar_listas(self):
         self._preencher_elenco()
@@ -733,12 +1266,21 @@ class App(tk.Tk):
                 self.entry_val_mensalidade.delete(0, "end")
                 self.entry_val_mensalidade.insert(0, f"{self.site.obter_valor_mensalidade():.2f}")
 
+        if hasattr(self, "atualizar_cards_dashboard"):
+            self._atualizar_cards_dashboard()
+
     def _preencher_elenco(self):
         self.tv_elenco.delete(*self.tv_elenco.get_children())
         if self.site is None:
             return
+        filtro = sp.sem_acento(self.var_busca_elenco.get().strip())
         try:
             for a in self.site.listar_elenco():
+                # Aplica o filtro de texto (nome, posição ou número)
+                texto_linha = f"{a['numero']} {a['nome']} {a['posicao']}"
+                if filtro and filtro not in sp.sem_acento(texto_linha):
+                    continue
+                
                 staff = a["grupo"] == sp.GRUPO_STAFF
                 self.tv_elenco.insert("", "end", iid=a["nome"], values=(
                     "" if a["numero"] is None else a["numero"], a["nome"], a["posicao"],
@@ -746,19 +1288,29 @@ class App(tk.Tk):
                     "" if staff else a["assistencias"]))
         except sp.ErroDados as e:
             self.log(f"Erro ao ler o elenco: {e}", "erro")
+        
+        self._aplicar_efeito_zebra(self.tv_elenco)
 
     def _preencher_jogos(self):
         self.tv_jogos.delete(*self.tv_jogos.get_children())
         if self.site is None:
             return
+        filtro = sp.sem_acento(self.var_busca_jogos.get().strip())
         rotulos = {"vitoria": "Vitória", "derrota": "Derrota", "empate": "Empate", "": ""}
         try:
             for j in self.site.listar_jogos():
+                # Aplica o filtro de texto (adversário, data, local ou resultado)
+                texto_linha = f"{j['data_br']} {j['adversario']} {j['local']} {j['placar']}"
+                if filtro and filtro not in sp.sem_acento(texto_linha):
+                    continue
+
                 self.tv_jogos.insert("", "end", iid=j["id"], values=(
                     j["data_br"], j["hora"], j["adversario"], j["local"], j["placar"],
                     rotulos.get(j["resultado"], "")))
         except sp.ErroDados as e:
             self.log(f"Erro ao ler os jogos: {e}", "erro")
+        
+        self._aplicar_efeito_zebra(self.tv_jogos)
 
     def _preencher_ranking(self):
         self.tv_ranking.delete(*self.tv_ranking.get_children())
@@ -773,12 +1325,32 @@ class App(tk.Tk):
         for i, (pos, a) in enumerate(_posicoes_ranking(ordenados, campo)):
             self.tv_ranking.insert("", "end", iid=str(i), values=(f"{pos}º", a["nome"], a["posicao"], a[campo]))
 
+        self._aplicar_efeito_zebra(self.tv_ranking)
+
     def _selecionado(self, tv, o_que):
         sel = tv.selection()
         if not sel:
             messagebox.showinfo("Seleção", f"Selecione {o_que} na lista.", parent=self)
             return None
         return sel[0]
+
+    def _criar_barra_busca(self, aba, comando_atualizar, largura=30):
+        """Cria um painel padrão de busca/filtro no topo de uma aba."""
+        topo_busca = ttk.Frame(aba)
+        topo_busca.pack(fill="x", pady=(0, 6))
+        
+        ttk.Label(topo_busca, text="Filtrar:").pack(side="left", padx=(0, 6))
+        
+        var_busca = tk.StringVar()
+        # Sempre que o texto mudar, chama a função de atualização correspondente
+        var_busca.trace("w", lambda *_: comando_atualizar())
+        
+        entry_busca = ttk.Entry(topo_busca, textvariable=var_busca, width=largura)
+        entry_busca.pack(side="left")
+        
+        ttk.Button(topo_busca, text="Limpar", command=lambda: var_busca.set("")).pack(side="left", padx=6)
+        
+        return var_busca
 
     # ------------------------------------------------------------ atualizar páginas
 
@@ -1085,6 +1657,8 @@ class App(tk.Tk):
             ev = eventos[dia]
             self.tv_cal.insert("", "end", iid=str(dia), values=(
                 dia, ev.get("tipo", ""), ev.get("hora", ""), ev.get("titulo", "")))
+        
+        self._aplicar_efeito_zebra(self.tv_cal)
 
     def _gravar_calendario(self) -> bool:
         try:
@@ -1209,6 +1783,66 @@ class App(tk.Tk):
             self.log(f"Backup gerado com sucesso: {caminho.name}")
             messagebox.showinfo("Backup Concluído", f"Backup criado com sucesso em:\n{caminho}", parent=self)
 
+    def _calcular_metricas_dashboard(self) -> dict:
+        """Calcula todas as estatísticas para exibição no Dashboard Resumo."""
+        if self.site is None:
+            return {}
+
+        atletas = [a for a in self.site.listar_elenco() if a["grupo"] != sp.GRUPO_STAFF]
+        jogos = self.site.listar_jogos()
+        transacoes = self.site.listar_financas()
+
+        # 1. Artilheiro e Garçom
+        artilheiro = max(atletas, key=lambda a: a.get("gols", 0), default=None)
+        garcom = max(atletas, key=lambda a: a.get("assistencias", 0), default=None)
+
+        # 2. Desempenho do Time
+        vitorias = sum(1 for j in jogos if j.get("resultado") == "vitoria")
+        empates = sum(1 for j in jogos if j.get("resultado") == "empate")
+        derrotas = sum(1 for j in jogos if j.get("resultado") == "derrota")
+        total_jogos = len([j for j in jogos if j.get("placar")])
+
+        aproveitamento = 0.0
+        if total_jogos > 0:
+            pontos_ganhos = (vitorias * 3) + (empates * 1)
+            pontos_possiveis = total_jogos * 3
+            aproveitamento = (pontos_ganhos / pontos_possiveis) * 100
+
+        # 3. Financeiro
+        saldo = 0.0
+        for t in transacoes:
+            val = float(t.get("valor", 0))
+            if t.get("tipo") == "recebita":
+                saldo += val
+            else:
+                saldo -= val
+
+        # 4. Próximo Jogo
+        hoje = date.today()
+        proximos = [j for j in jogos if datetime.strptime(j["data_br"], "%d/%m/%Y").date() >= hoje]
+        proximos.sort(key=lambda j: datetime.strptime(j["data_br"], "%d/%m/%Y").date())
+        proximo_jogo = proximos[0] if proximos else None
+
+        return {
+            "artilheiro": f"{artilheiro['nome']} ({artilheiro['gols']} gols)" if artilheiro and artilheiro.get("gols", 0) > 0 else "Nenhum",
+            "garcom": f"{garcom['nome']} ({garcom['assistencias']} assist.)" if garcom and garcom.get("assistencias", 0) > 0 else "Nenhum",
+            "retrospecto": f"{vitorias}V - {empates}E - {derrotas}D ({aproveitamento:.1f}%)",
+            "saldo_caixa": f"R$ {saldo:.2f}",
+            "proximo_jogo": f"{proximo_jogo['data_br']} {proximo_jogo['hora']} vs {proximo_jogo['adversario']}" if proximo_jogo else "Nenhum jogo agendado"
+        }
+    
+    def _aplicar_efeito_zebra(self, treeview):
+        """Aplica cores alternadas (efeito zebra) nas linhas da Treeview."""
+        linhas = treeview.get_children()
+        for i, item_id in enumerate(linhas):
+            if i % 2 == 0:
+                treeview.item(item_id, tags=("par",))
+            else:
+                treeview.item(item_id, tags=("impar",))
+        
+        # Configura as cores das tags
+        treeview.tag_configure("par", background="#ffffff")
+        treeview.tag_configure("impar", background="#f8fafc")
 
 def main():
     App().mainloop()

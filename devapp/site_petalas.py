@@ -1436,6 +1436,85 @@ class Site:
 
         return caminho_zip
 
+    # ------------------------------------------------------------ treinos e presença
+    def _caminho_treinos(self) -> Path:
+        return self.pasta_dados / "treinos.json"
+
+    def carregar_treinos(self) -> dict:
+        caminho = self._caminho_treinos()
+        if caminho.exists():
+            try:
+                return json.loads(caminho.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return {}
+
+    def salvar_treinos(self, treinos: dict) -> None:
+        caminho = self._caminho_treinos()
+        caminho.write_text(json.dumps(treinos, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def adicionar_ou_editar_treino(self, id_treino: str, data: str, hora: str, descricao: str, presencas: dict) -> str:
+        treinos = self.carregar_treinos()
+        if not id_treino:
+            # Gera um ID baseado na data e descrição curta
+            base = re.sub(r"[^a-z0-9]+", "-", sem_acento(data + "-" + descricao[:15])).strip("-")
+            id_treino = base if base not in treinos else f"{base}-{len(treinos)+1}"
+        
+        treinos[id_treino] = {
+            "id": id_treino,
+            "data": data,
+            "hora": hora,
+            "descricao": descricao,
+            "presencas": presencas  # Ex: {"slug-atleta": {"status": "presente"|"ausente"|"justificado", "motivo": "..."}}
+        }
+        self.salvar_treinos(treinos)
+        return id_treino
+
+    def remover_treino(self, id_treino: str) -> None:
+        treinos = self.carregar_treinos()
+        if id_treino in treinos:
+            pop_item = treinos.pop(id_treino)
+            self.salvar_treinos(treinos)
+
+    def calcular_porcentagem_presenca(self) -> dict:
+        """
+        Calcula a % de presença de cada atleta.
+        Fórmula: Presaças / (Total de Treinos - Faltas Justificadas)
+        """
+        treinos = self.carregar_treinos()
+        atletas = [a for a in self.listar_elenco() if a["grupo"] != GRUPO_STAFF]
+        
+        estatisticas = {}
+        for a in atletas:
+            slug = a["slug"]
+            total_esperado = 0
+            presentes = 0
+            justificadas = 0
+            
+            for t_id, treino in treinos.items():
+                p_info = treino.get("presencas", {}).get(slug, {"status": "ausente", "motivo": ""})
+                status = p_info.get("status", "ausente")
+                
+                if status == "presente":
+                    presentes += 1
+                    total_esperado += 1
+                elif status == "justificado":
+                    justificadas += 1
+                    # Faltas justificadas não entram no total cobrado do atleta
+                else:
+                    # Ausente sem justificativa conta no total esperado
+                    total_esperado += 1
+            
+            porcentagem = (presentes / total_esperado * 100) if total_esperado > 0 else 100.0
+            estatisticas[slug] = {
+                "nome": a["nome"],
+                "presentes": presentes,
+                "total_esperado": total_esperado,
+                "justificadas": justificadas,
+                "porcentagem": porcentagem
+            }
+        return estatisticas
+
 
 # ====================================================================== CLI mínima (opcional)
 

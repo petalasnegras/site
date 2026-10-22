@@ -1,0 +1,14 @@
+{
+  "24-10-2026-1x1-marcacao": {
+    "id": "24-10-2026-1x1-marcacao",
+    "data": "24/10/2026",
+    "hora": "09:30",
+    "descricao": "1x1, marcação, drible e finalização",
+    "presencas": {
+      "dereviani": {
+        "status": "ausente",
+        "motivo": ""
+      }
+    }
+  }
+}
